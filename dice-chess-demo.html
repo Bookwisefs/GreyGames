@@ -3,576 +3,270 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dice Chess — How to Play Demo</title>
+<title>Dice Chess — Basic Demo</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg:#0f0e0c; --panel:#1a1814; --border:#3a3020;
-  --gold:#c9a84c; --gold-light:#e8c96a; --gold-dim:#7a6030;
-  --cream:#f0e8d0; --light-sq:#d4b896; --dark-sq:#8b6040;
-}
+:root{--bg:#0a0908;--panel:#131110;--border:#2e2416;--gold:#c9a84c;--gold-l:#e8c96a;--gold-d:#7a6030;--cream:#f0e8d0;--muted:#8a7a5a;--ls:#d4b896;--ds:#8b6040;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{
-  background:var(--bg);
-  color:var(--cream);
-  font-family:'Crimson Pro',serif;
-  min-height:100vh;
-  display:flex;flex-direction:column;align-items:center;
-  padding:24px 16px;
-  background-image:radial-gradient(ellipse at 50% 0%,#2a2010 0%,#0f0e0c 70%);
-}
-h1{
-  font-family:'Cinzel Decorative',cursive;
-  font-size:clamp(1.2rem,4vw,1.8rem);
-  color:var(--gold);
-  text-shadow:0 0 30px rgba(201,168,76,0.4);
-  letter-spacing:3px;
-  margin-bottom:4px;
-  text-align:center;
-}
-.subtitle{color:var(--gold-dim);font-style:italic;font-size:.95rem;margin-bottom:24px;text-align:center;}
-
-.demo-card{
-  background:var(--panel);
-  border:2px solid var(--gold-dim);
-  border-radius:14px;
-  padding:24px;
-  max-width:620px;
-  width:100%;
-  box-shadow:0 0 40px rgba(0,0,0,.6);
-}
-
-/* STEP DOTS */
-.step-dots{display:flex;justify-content:center;gap:8px;margin-bottom:18px;}
-.dot{
-  width:10px;height:10px;border-radius:50%;
-  background:var(--border);
-  transition:background .3s, transform .3s;
-  cursor:pointer;
-}
-.dot.active{background:var(--gold);transform:scale(1.3);}
-.dot:hover{background:var(--gold-dim);}
-
-/* SCENE LAYOUT */
-.scene{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center;margin-bottom:18px;}
-
-/* MINI BOARD */
-.board-wrap{}
-.mini-board{
-  display:grid;
-  grid-template-columns:repeat(8,44px);
-  border:2px solid var(--gold-dim);
-  box-shadow:0 0 20px rgba(0,0,0,.5);
-}
-@media(max-width:500px){
-  .mini-board{grid-template-columns:repeat(8,36px);}
-  .msq{width:36px!important;height:36px!important;}
-  .mp{font-size:22px!important;}
-}
-.msq{
-  width:44px;height:44px;
-  display:flex;align-items:center;justify-content:center;
-  position:relative;
-  transition:background .25s;
-}
-.msq.light{background:var(--light-sq);}
-.msq.dark{background:var(--dark-sq);}
-.msq.sel{background:rgba(255,180,0,.7)!important;}
-.msq.mv{background:rgba(100,220,100,.55)!important;}
-.msq.cap{background:rgba(220,60,60,.65)!important;}
-.msq.done{background:rgba(80,150,255,.3)!important;}
-.msq.hi{background:rgba(100,220,100,.4)!important;box-shadow:inset 0 0 0 2px rgba(80,220,80,1);}
-.msq.king-danger{box-shadow:inset 0 0 0 3px rgba(255,50,50,.9)!important;}
-.mp{
-  font-size:26px;
-  line-height:1;
-  pointer-events:none;
-}
-.mp.wp{
-  color:#fff;
-  text-shadow:0 0 3px #000,0 0 3px #000,1px 1px 2px #000,-1px -1px 2px #000;
-}
-.mp.bp{
-  color:#111;
-  text-shadow:0 0 3px #fff,0 0 3px #fff,1px 1px 1px rgba(255,255,255,.6),-1px -1px 1px rgba(255,255,255,.6);
-}
-/* piece move animation */
-@keyframes pieceLand{0%{transform:scale(.6);opacity:.4;}100%{transform:scale(1);opacity:1;}}
-.mp.landing{animation:pieceLand .3s ease;}
-
-/* DICE PANEL */
-.dice-panel{
-  display:flex;flex-direction:column;align-items:center;gap:8px;
-  min-width:90px;
-}
-.dice-row{display:flex;gap:8px;}
-.die{
-  width:40px;height:40px;
-  background:var(--cream);
-  border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:1.4rem;font-weight:700;color:#1a1814;
-  box-shadow:inset 0 -2px 0 rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.5);
-}
-@keyframes rollDie{
-  0%{transform:rotate(0deg) scale(1);}
-  25%{transform:rotate(-20deg) scale(1.1);}
-  75%{transform:rotate(10deg) scale(.95);}
-  100%{transform:rotate(0deg) scale(1);}
-}
-.die.rolling{animation:rollDie .4s ease-out;}
-.dice-total{
-  font-family:'Cinzel Decorative',cursive;
-  font-size:1.8rem;color:var(--gold);font-weight:700;
-}
-.pts-left{font-size:.8rem;color:var(--gold-light);text-align:center;min-height:1.2em;}
-
-/* NARRATION */
-.narration{
-  background:#0c0b09;
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:14px 16px;
-  font-size:.95rem;
-  line-height:1.65;
-  color:var(--cream);
-  min-height:90px;
-  position:relative;
-}
-.narration .step-badge{
-  display:inline-block;
-  background:var(--gold-dim);
-  color:#0f0e0c;
-  font-family:'Cinzel Decorative',cursive;
-  font-size:.55rem;
-  padding:2px 7px;
-  border-radius:10px;
-  margin-right:8px;
-  vertical-align:middle;
-  letter-spacing:1px;
-}
-
-/* NAV */
-.nav{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:16px;flex-wrap:wrap;}
-.btn{
-  background:linear-gradient(135deg,#2a2010,#3a3020);
-  border:1px solid var(--gold-dim);
-  color:var(--gold);
-  font-family:'Cinzel Decorative',cursive;
-  font-size:.6rem;letter-spacing:2px;
-  padding:9px 16px;border-radius:6px;
-  cursor:pointer;transition:all .2s;
-  text-transform:uppercase;
-}
-.btn:hover:not(:disabled){
-  background:linear-gradient(135deg,#3a3020,#4a4030);
-  border-color:var(--gold);color:var(--gold-light);
-}
+body{background:var(--bg);color:var(--cream);font-family:'Crimson Pro',serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px 60px;background-image:radial-gradient(ellipse 70% 40% at 50% 0%,rgba(201,168,76,.06) 0%,transparent 70%);}
+h1{font-family:'Cinzel Decorative',cursive;font-size:clamp(1.1rem,4vw,1.7rem);color:var(--gold);letter-spacing:4px;margin-bottom:4px;text-align:center;}
+.sub{color:var(--muted);font-style:italic;font-size:.9rem;margin-bottom:6px;text-align:center;}
+.badge{display:inline-block;background:#1a1408;border:1px solid var(--gold-d);color:var(--gold-d);font-family:'Cinzel Decorative',cursive;font-size:.55rem;letter-spacing:2px;padding:3px 10px;border-radius:12px;margin-bottom:20px;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;max-width:640px;width:100%;box-shadow:0 0 40px rgba(0,0,0,.6);}
+.dots{display:flex;justify-content:center;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--border);cursor:pointer;transition:background .25s,transform .25s;}
+.dot.active{background:var(--gold);transform:scale(1.4);}
+.dot.done{background:var(--gold-d);}
+.scene{display:flex;gap:16px;align-items:flex-start;justify-content:center;flex-wrap:wrap;margin-bottom:16px;}
+.board{display:grid;grid-template-columns:repeat(8,42px);border:2px solid var(--gold-d);flex-shrink:0;}
+@media(max-width:480px){.board{grid-template-columns:repeat(8,34px);}.sq{width:34px!important;height:34px!important;}.pc{font-size:20px!important;}}
+.sq{width:42px;height:42px;display:flex;align-items:center;justify-content:center;position:relative;transition:background .3s;}
+.sq.l{background:var(--ls);}.sq.d{background:var(--ds);}
+.sq.sel{background:rgba(255,190,0,.72)!important;}
+.sq.mv{background:rgba(100,220,100,.52)!important;}
+.sq.cap{background:rgba(220,60,60,.67)!important;}
+.sq.moved{background:rgba(70,140,255,.32)!important;}
+.sq.hi{background:rgba(100,220,100,.38)!important;box-shadow:inset 0 0 0 2px rgba(80,220,80,.9);}
+.sq.danger{box-shadow:inset 0 0 0 3px rgba(255,40,40,.9)!important;}
+@keyframes land{from{transform:scale(.45);opacity:.2;}to{transform:scale(1);opacity:1;}}
+.pc{font-size:24px;line-height:1;pointer-events:none;}
+.pc.w{color:#fff;text-shadow:0 0 3px #000,0 0 3px #000,1px 1px 2px #000,-1px -1px 2px #000;}
+.pc.b{color:#111;text-shadow:0 0 3px #fff,0 0 3px #fff,1px 1px 1px rgba(255,255,255,.6),-1px -1px 1px rgba(255,255,255,.6);}
+.pc.land{animation:land .3s ease;}
+.dp{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:88px;}
+.dr{display:flex;gap:8px;}
+.die{width:38px;height:38px;background:var(--cream);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:#1a1814;box-shadow:inset 0 -2px 0 rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.5);}
+@keyframes roll{0%{transform:rotate(0) scale(1);}25%{transform:rotate(-25deg) scale(1.15);}75%{transform:rotate(15deg) scale(.9);}100%{transform:rotate(0) scale(1);}}
+.die.roll{animation:roll .45s ease-out;}
+.dtot{font-family:'Cinzel Decorative',cursive;font-size:1.8rem;color:var(--gold);font-weight:700;}
+.dpts{font-size:.78rem;color:var(--gold-l);text-align:center;min-height:1.1em;}
+.dlbl{font-family:'Cinzel Decorative',cursive;font-size:.5rem;color:var(--gold-d);letter-spacing:2px;}
+.nwrap{position:relative;}
+.narr{background:#0c0b09;border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:.93rem;line-height:1.65;color:var(--cream);min-height:88px;}
+.tag{display:inline-block;background:var(--gold-d);color:#0f0e0c;font-family:'Cinzel Decorative',cursive;font-size:.5rem;padding:2px 8px;border-radius:10px;margin-right:8px;vertical-align:middle;letter-spacing:1px;}
+.nav{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:14px;flex-wrap:wrap;}
+.btn{background:linear-gradient(135deg,#2a2010,#3a3020);border:1px solid var(--gold-d);color:var(--gold);font-family:'Cinzel Decorative',cursive;font-size:.58rem;letter-spacing:2px;padding:9px 16px;border-radius:6px;cursor:pointer;transition:all .2s;text-transform:uppercase;}
+.btn:hover:not(:disabled){background:linear-gradient(135deg,#3a3020,#4a4030);border-color:var(--gold);color:var(--gold-l);}
 .btn:disabled{opacity:.3;cursor:not-allowed;}
-.btn.play{border-color:#8866cc;color:#ccaaff;}
-.btn.play:hover{border-color:#aa88ff;color:#ddbbff;}
-.btn.play.active-play{background:linear-gradient(135deg,#2a1050,#3a2060);border-color:#aa88ff;color:#ddbbff;}
-.step-counter{font-size:.85rem;color:var(--gold-dim);min-width:60px;text-align:center;}
-
-/* BACK LINK */
-.back-link{
-  display:block;margin-top:20px;
-  font-size:.85rem;color:var(--gold-dim);
-  text-decoration:none;text-align:center;
-  transition:color .2s;
-}
-.back-link:hover{color:var(--gold);}
-
-/* LEGEND FOOTER */
-.legend-footer{
-  max-width:620px;width:100%;
-  margin-top:20px;
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
-  gap:8px;
-}
-.lf-item{
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:6px;
-  padding:8px 10px;
-  font-size:.82rem;
-  color:#b0a080;
-  text-align:center;
-}
-.lf-item strong{color:var(--cream);}
+.btn.g{border-color:#556655;color:#99bb99;}
+.ctr{font-size:.82rem;color:var(--muted);min-width:55px;text-align:center;}
+.sbtn{position:absolute;top:0;right:0;background:none;border:1px solid var(--border);color:var(--muted);font-size:.85rem;padding:4px 8px;border-radius:6px;cursor:pointer;transition:all .2s;}
+.sbtn:hover{border-color:var(--gold-d);color:var(--gold-d);}
+.links{display:flex;gap:12px;justify-content:center;margin-top:18px;flex-wrap:wrap;}
+.lnk{font-size:.82rem;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:6px 14px;border-radius:6px;transition:all .2s;}
+.lnk:hover{color:var(--gold);border-color:var(--gold-d);}
+.lnk.adv{border-color:#6644aa;color:#aa88ee;}
+.lnk.adv:hover{border-color:#aa88ff;color:#ccaaff;}
+.ck{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:12px;max-width:640px;width:100%;}
+.cki{display:flex;align-items:center;gap:4px;font-size:.73rem;color:var(--muted);}
+.ckd{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
 </style>
 </head>
 <body>
-
 <h1>⚄ Dice Chess</h1>
-<p class="subtitle">Animated Tutorial — watch how a turn plays out</p>
+<p class="sub">Interactive Tutorial</p>
+<span class="badge">DEMO 1 — BASICS</span>
 
-<div class="demo-card">
-  <div class="step-dots" id="step-dots"></div>
-
+<div class="card">
+  <div class="dots" id="dots"></div>
   <div class="scene">
-    <div class="board-wrap">
-      <div class="mini-board" id="mini-board"></div>
-    </div>
-    <div class="dice-panel">
-      <div style="font-family:'Cinzel Decorative',cursive;font-size:.55rem;color:var(--gold-dim);letter-spacing:2px;">DICE</div>
-      <div class="dice-row">
-        <div class="die" id="die-a">–</div>
-        <div class="die" id="die-b">–</div>
-      </div>
-      <div class="dice-total" id="dice-total">–</div>
-      <div class="pts-left" id="pts-left"></div>
+    <div class="board" id="board"></div>
+    <div class="dp">
+      <div class="dlbl">DICE</div>
+      <div class="dr"><div class="die" id="d1">–</div><div class="die" id="d2">–</div></div>
+      <div class="dtot" id="dtot">–</div>
+      <div class="dpts" id="dpts"></div>
     </div>
   </div>
-
-  <div class="narration" id="narration"><em style="color:var(--gold-dim);">Press ▶ Auto Play or Next to begin…</em></div>
-
+  <div class="nwrap">
+    <button class="sbtn" id="sbtn" onclick="toggleSound()">🔊</button>
+    <div class="narr" id="narr"></div>
+  </div>
   <div class="nav">
-    <button class="btn" id="btn-prev" onclick="stepPrev()" disabled>◀ Prev</button>
-    <span class="step-counter" id="step-counter">— / —</span>
-    <button class="btn" id="btn-next" onclick="stepNext()">Next ▶</button>
-    <button class="btn play" id="btn-auto" onclick="toggleAuto()">⏵ Auto Play</button>
-    <button class="btn" onclick="restartDemo()" style="border-color:#556655;color:#99bb99;">↺ Restart</button>
+    <button class="btn" id="bprev" onclick="go(cur-1)" disabled>◀ Back</button>
+    <span class="ctr" id="ctr"></span>
+    <button class="btn" id="bnext" onclick="go(cur+1)">Next ▶</button>
+    <button class="btn g" onclick="go(0)">↺ Restart</button>
   </div>
 </div>
 
-<div class="legend-footer">
-  <div class="lf-item">♙♟ Pawn<br><strong>1 pt</strong></div>
-  <div class="lf-item">♘♞ Knight<br><strong>3 pt</strong></div>
-  <div class="lf-item">♗♝ Bishop<br><strong>3 pt</strong></div>
-  <div class="lf-item">♖♜ Rook<br><strong>5 pt</strong></div>
-  <div class="lf-item">🏰 Castle<br><strong>5 pt</strong></div>
-  <div class="lf-item">♕♛ Queen<br><strong>9 pt</strong></div>
-  <div class="lf-item">♔♚ King<br><strong>Full turn</strong></div>
-  <div class="lf-item">Captures<br><strong>Free!</strong></div>
+<div class="ck">
+  <div class="cki"><div class="ckd" style="background:rgba(255,190,0,.72)"></div>Selected</div>
+  <div class="cki"><div class="ckd" style="background:rgba(100,220,100,.52)"></div>Can move to</div>
+  <div class="cki"><div class="ckd" style="background:rgba(220,60,60,.67)"></div>Capture</div>
+  <div class="cki"><div class="ckd" style="background:rgba(70,140,255,.32)"></div>Already moved</div>
+  <div class="cki"><div class="ckd" style="background:rgba(100,220,100,.38);box-shadow:inset 0 0 0 2px rgba(80,220,80,.9)"></div>Valid piece</div>
 </div>
 
-<a class="back-link" href="dice-chess.html">← Back to Game</a>
+<div class="links">
+  <a class="lnk" href="index.html">🏠 Home</a>
+  <a class="lnk" href="dice-chess.html">♟ Play Game</a>
+  <a class="lnk adv" href="dice-chess-demo2.html">⚔ Advanced Demo →</a>
+</div>
 
 <script>
-// ─── PIECE GLYPHS ────────────────────────────────────────────────────────────
+// ── AUDIO ─────────────────────────────────────────────────────────────────────
+let actx=null, snd=true;
+function ctx(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();return actx;}
+function tone(f,t,dur,v=0.28,dl=0){if(!snd)return;try{const c=ctx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=t;o.frequency.value=f;const s=c.currentTime+dl;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(v,s+.01);g.gain.exponentialRampToValueAtTime(.001,s+dur);o.start(s);o.stop(s+dur);}catch(e){}}
+function noise(dur,v=0.14,dl=0){if(!snd)return;try{const c=ctx(),b=c.createBuffer(1,c.sampleRate*dur,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const s=c.createBufferSource(),g=c.createGain(),f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=700;s.buffer=b;s.connect(f);f.connect(g);g.connect(c.destination);const t=c.currentTime+dl;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);s.start(t);s.stop(t+dur);}catch(e){}}
+const SFX={
+  roll(){for(let i=0;i<6;i++)noise(.06,.18,i*.065);tone(280,'sine',.12,.12,.4);},
+  select(){tone(660,'sine',.07,.18);tone(880,'sine',.07,.13,.055);},
+  move(){tone(420,'triangle',.07,.22);noise(.04,.07);},
+  capture(){tone(200,'sawtooth',.06,.28);tone(140,'sawtooth',.09,.18,.05);noise(.1,.14);},
+  done(){[523,659,784,1047].forEach((f,i)=>tone(f,'sine',.14,.18,i*.075));},
+  ready(){[523,659,784,1047,1319].forEach((f,i)=>tone(f,'sine',.18,.22,i*.09));setTimeout(()=>{[784,1047,1319].forEach((f,i)=>tone(f,'sine',.22,.28,i*.09));},650);}
+};
+function toggleSound(){snd=!snd;document.getElementById('sbtn').textContent=snd?'🔊':'🔇';}
+
+// ── GLYPHS ────────────────────────────────────────────────────────────────────
 const WG={P:'♙',N:'♘',B:'♗',R:'♖',Q:'♕',K:'♔'};
 const BG={P:'♟',N:'♞',B:'♝',R:'♜',Q:'♛',K:'♚'};
+const W=t=>({c:'w',t}), B=t=>({c:'b',t});
+const eb=()=>Array.from({length:8},()=>Array(8).fill(null));
+const std=()=>{const b=eb();['R','N','B','Q','K','B','N','R'].forEach((t,c)=>{b[0][c]=B(t);b[7][c]=W(t);});for(let c=0;c<8;c++){b[1][c]=B('P');b[6][c]=W('P');}return b;};
 
-// ─── BOARD HELPERS ───────────────────────────────────────────────────────────
-function emptyBoard(){return Array.from({length:8},()=>Array(8).fill(null));}
-function piece(color,type){return{color,type};}
-const W=c=>piece('w',c), B=c=>piece('b',c);
+// ── STEPS ─────────────────────────────────────────────────────────────────────
+const STEPS=[
+{b:std(),dice:[null,null],tot:null,pts:null,hl:{},sfx:null,
+ txt:`<span class="tag">WELCOME</span><strong>Welcome to Dice Chess!</strong> This demo walks you through a complete turn, step by step. Use <strong>Next ▶</strong> and <strong>◀ Back</strong> to move through it at your own pace. The board starts just like regular chess — but what happens next is very different.`},
 
-// ─── SCENE DEFINITIONS ───────────────────────────────────────────────────────
-// Each scene: board state + highlights + dice + narration
-// Highlights: {sel:[r,c], mvs:[[r,c]...], caps:[[r,c]...], done:[[r,c]...], hi:[[r,c]...], kingDanger:[r,c]}
-const SCENES = [
+{b:std(),dice:[3,5],tot:8,pts:'8 pts to spend — exactly',hl:{},sfx:'roll',
+ txt:`<span class="tag">THE ROLL</span>White rolls <strong>3 + 5 = 8</strong>. 🎲 Every turn starts with a dice roll. You must then move pieces whose point values add up to <strong>exactly</strong> that number. Can't go over. Can't leave points unspent. Exact total only.`},
 
-  // ── SCENE 0: Title / Starting position ───────────────────────────────────
-  {
-    board: (() => {
-      const b=emptyBoard();
-      ['R','N','B','Q','K','B','N','R'].forEach((t,c)=>{b[0][c]=B(t);b[7][c]=W(t);});
-      for(let c=0;c<8;c++){b[1][c]=B('P');b[6][c]=W('P');}
-      return b;
-    })(),
-    dice:[null,null], total:null, pts:null, hl:{},
-    text:`<span class="step-badge">START</span><strong>Welcome to Dice Chess!</strong> The board starts like regular chess. But instead of moving one piece per turn, you <strong>roll 2 dice</strong> and must spend exactly the total shown — using piece point values.`
-  },
+{b:std(),dice:[3,5],tot:8,pts:'8 pts — valid pieces glow green',
+ hl:{hi:[[6,0],[6,1],[6,2],[6,3],[6,4],[6,5],[6,6],[6,7],[7,1],[7,2],[7,5],[7,6]]},sfx:'select',
+ txt:`<span class="tag">PIECE VALUES</span>Pawn <strong>= 1pt</strong> · Knight <strong>= 3pt</strong> · Bishop <strong>= 3pt</strong> · Rook <strong>= 5pt</strong> · Queen <strong>= 9pt</strong> · King <strong>= entire turn</strong>. Green squares show every piece that fits into a valid combination for the roll of 8. The game calculates this automatically.`},
 
-  // ── SCENE 1: Roll the dice ────────────────────────────────────────────────
-  {
-    board: (() => {
-      const b=emptyBoard();
-      ['R','N','B','Q','K','B','N','R'].forEach((t,c)=>{b[0][c]=B(t);b[7][c]=W(t);});
-      for(let c=0;c<8;c++){b[1][c]=B('P');b[6][c]=W('P');}
-      return b;
-    })(),
-    dice:[3,5], total:8, pts:'8 pts to spend', hl:{hi:[[6,0],[6,1],[6,2],[6,3],[6,4],[6,5],[6,6],[6,7],[7,1],[7,6],[7,2],[7,5]]},
-    text:`<span class="step-badge">ROLL</span>White rolls <strong>3 + 5 = 8</strong>. Green-highlighted pieces can be part of a valid combination. You must spend <strong>exactly 8 points</strong> — no more, no less. The game figures out which combinations are valid automatically.`
-  },
+{b:(()=>{const b=eb();b[7][0]=W('R');b[7][1]=W('N');b[7][4]=W('K');b[6][3]=W('P');b[6][6]=W('P');b[0][4]=B('K');b[1][2]=B('P');b[1][5]=B('P');b[2][3]=B('N');return b;})(),
+ dice:[3,5],tot:8,pts:'8 pts — Rook(5) + Knight(3) = 8',
+ hl:{hi:[[7,0],[7,1]]},sfx:'select',
+ txt:`<span class="tag">THE PLAN</span>White wants to play <strong>Rook (5pt) + Knight (3pt) = 8</strong>. Both glow green. The strategy: move the Rook up the open file to pressure Black, then jump the Knight into the center. Let's do it — click the Rook first.`},
 
-  // ── SCENE 2: Piece values explained ──────────────────────────────────────
-  {
-    board: (() => {
-      const b=emptyBoard();
-      b[4][0]=W('P'); b[4][2]=W('N'); b[4][4]=W('B'); b[4][6]=W('R'); b[2][2]=W('Q'); b[2][6]=W('K');
-      b[3][1]=B('P'); b[3][3]=B('N'); b[3][5]=B('B'); b[3][7]=B('R'); b[5][3]=B('Q'); b[5][7]=B('K');
-      return b;
-    })(),
-    dice:[null,null], total:null, pts:null, hl:{},
-    text:`<span class="step-badge">VALUES</span><strong>Piece point values:</strong> Pawn <strong>♙ = 1pt</strong> · Knight <strong>♘ = 3pt</strong> · Bishop <strong>♗ = 3pt</strong> · Rook <strong>♖ = 5pt</strong> · Queen <strong>♕ = 9pt</strong> · Castling <strong>= 5pt</strong>. The King uses your <em>entire turn</em>. Captures are always <strong>free</strong>!`
-  },
+{b:(()=>{const b=eb();b[7][0]=W('R');b[7][1]=W('N');b[7][4]=W('K');b[6][3]=W('P');b[6][6]=W('P');b[0][4]=B('K');b[1][2]=B('P');b[1][5]=B('P');b[2][3]=B('N');return b;})(),
+ dice:[3,5],tot:8,pts:'5 pts spent — Rook selected',
+ hl:{sel:[7,0],mvs:[[7,2],[7,3],[6,0],[5,0],[4,0],[3,0],[2,0],[1,0]]},sfx:'select',
+ txt:`<span class="tag">ROOK SELECTED</span>Rook highlighted gold. Yellow squares = every legal destination. The Rook can slide along the a-file all the way to a7 or swing right across rank 1. White picks <strong>a3</strong> — a strong central file position that threatens Black's position.`},
 
-  // ── SCENE 3: Selecting the rook (5pt) for an 8pt roll ────────────────────
-  {
-    board: (() => {
-      const b=emptyBoard();
-      b[7][4]=W('K'); b[7][7]=W('R'); b[7][1]=W('N'); b[6][4]=W('P');
-      b[0][4]=B('K'); b[1][3]=B('P'); b[2][5]=B('N');
-      return b;
-    })(),
-    dice:[3,5], total:8, pts:'8 pts — select a piece', hl:{hi:[[7,7],[7,1]]},
-    text:`<span class="step-badge">SELECT</span>Rolled <strong>8</strong>. Green squares show pieces usable in a valid combo. White selects the <strong>Rook (5pt)</strong> — yellow shows it's selected. Yellow destination squares appear to show where it can move.`
-  },
+{b:(()=>{const b=eb();b[5][0]=W('R');b[7][1]=W('N');b[7][4]=W('K');b[6][3]=W('P');b[6][6]=W('P');b[0][4]=B('K');b[1][2]=B('P');b[1][5]=B('P');b[2][3]=B('N');return b;})(),
+ dice:[3,5],tot:8,pts:'3 pts remaining',
+ hl:{moved:[[5,0]],hi:[[7,1]]},sfx:'move',
+ txt:`<span class="tag">ROOK MOVED ✓</span>Rook moved to a3 (blue tint = moved this turn, can't move again). <strong>3 pts remain.</strong> Now only the Knight (3pt) glows — it's the only piece that completes the exact total of 8. You must spend all remaining points before your turn ends.`},
 
-  // ── SCENE 4: Rook selected, showing moves ────────────────────────────────
-  {
-    board: (() => {
-      const b=emptyBoard();
-      b[7][4]=W('K'); b[7][7]=W('R'); b[7][1]=W('N'); b[6][4]=W('P');
-      b[0][4]=B('K'); b[1][3]=B('P'); b[2][5]=B('N');
-      return b;
-    })(),
-    dice:[3,5], total:8, pts:'8 pts — Rook selected (5pt)', hl:{sel:[7,7], mvs:[[7,6],[7,5],[6,7],[5,7],[4,7],[3,7]]},
-    text:`<span class="step-badge">MOVE</span>The Rook is selected (gold). Yellow squares show all legal destinations. Click any yellow square to move the Rook there. After it moves, <strong>3pt will remain</strong> — just enough for the Knight!`
-  },
+{b:(()=>{const b=eb();b[5][0]=W('R');b[7][1]=W('N');b[7][4]=W('K');b[6][3]=W('P');b[6][6]=W('P');b[0][4]=B('K');b[1][2]=B('P');b[1][5]=B('P');b[2][3]=B('N');return b;})(),
+ dice:[3,5],tot:8,pts:'3 pts — Knight selected',
+ hl:{moved:[[5,0]],sel:[7,1],mvs:[[5,0],[5,2],[6,3]]},sfx:'select',
+ txt:`<span class="tag">KNIGHT SELECTED</span>Knight selected (gold). It has 3 legal squares. Note: d3 is occupied by a White Pawn — Knights can <em>jump over</em> pieces but can't land on friendlies. White picks <strong>c3</strong> — a strong central square that attacks Black's pawn on d5.`},
 
-  // ── SCENE 5: Rook moved, knight still needed ─────────────────────────────
-  {
-    board: (() => {
-      const b=emptyBoard();
-      b[7][4]=W('K'); b[4][7]=W('R'); b[7][1]=W('N'); b[6][4]=W('P');
-      b[0][4]=B('K'); b[1][3]=B('P'); b[2][5]=B('N');
-      return b;
-    })(),
-    dice:[3,5], total:8, pts:'3 pts remaining', hl:{done:[[4,7]], hi:[[7,1]]},
-    text:`<span class="step-badge">CONTINUE</span>Rook moved to h5 (blue tint = moved this turn). <strong>3pt remain</strong>. The Knight (3pt) is now highlighted — it's the only piece that completes the exact total. You <em>must</em> spend all points; you can't end the turn early.`
-  },
+{b:(()=>{const b=eb();b[5][0]=W('R');b[5][2]=W('N');b[7][4]=W('K');b[6][3]=W('P');b[6][6]=W('P');b[0][4]=B('K');b[1][2]=B('P');b[1][5]=B('P');b[2][3]=B('N');return b;})(),
+ dice:[3,5],tot:8,pts:'0 pts — Turn complete! ✓',
+ hl:{moved:[[5,0],[5,2]]},sfx:'done',
+ txt:`<span class="tag">TURN DONE ✓</span>Knight moved to c3. <strong>5 + 3 = 8 ✓</strong>. Both moved pieces show in blue. Turn over — it's now Black's turn to roll. This is the heart of every Dice Chess turn: roll, find a combination, move each piece one at a time, hit exactly zero.`},
 
-  // ── SCENE 6: Knight selected, showing moves ───────────────────────────────
-  {
-    board: (() => {
-      const b=emptyBoard();
-      b[7][4]=W('K'); b[4][7]=W('R'); b[7][1]=W('N'); b[6][4]=W('P');
-      b[0][4]=B('K'); b[1][3]=B('P'); b[2][5]=B('N');
-      return b;
-    })(),
-    dice:[3,5], total:8, pts:'3 pts remaining', hl:{done:[[4,7]], sel:[7,1], mvs:[[5,0],[5,2],[6,3]]},
-    text:`<span class="step-badge">KNIGHT</span>Knight selected (gold). It has 3 possible squares. Pick one to complete the <strong>5+3=8</strong> turn. Both pieces moved — turn ends automatically!`
-  },
+{b:(()=>{const b=eb();b[7][4]=W('K');b[5][3]=W('R');b[6][0]=W('P');b[6][7]=W('P');b[0][4]=B('K');b[3][3]=B('N');b[3][6]=B('B');b[1][4]=B('P');return b;})(),
+ dice:[2,3],tot:5,pts:'5 pts — what can White do?',
+ hl:{hi:[[5,3]]},sfx:'roll',
+ txt:`<span class="tag">FREE CAPTURES</span>New position. White rolls <strong>5</strong>. The Rook costs 5pt. But look — an enemy Knight is sitting right in its path on d5. Here comes the best rule in the game: <strong>captures are completely free.</strong> Taking an enemy piece costs zero extra points.`},
 
-  // ── SCENE 7: Both pieces moved — turn complete ────────────────────────────
-  {
-    board: (() => {
-      const b=emptyBoard();
-      b[7][4]=W('K'); b[4][7]=W('R'); b[5][2]=W('N'); b[6][4]=W('P');
-      b[0][4]=B('K'); b[1][3]=B('P'); b[2][5]=B('N');
-      return b;
-    })(),
-    dice:[3,5], total:8, pts:'0 pts — Turn complete! ✓', hl:{done:[[4,7],[5,2]]},
-    text:`<span class="step-badge">DONE</span><strong>Turn complete!</strong> Rook moved to h5 and Knight to c3 — both shown in blue. Total spent: <strong>5 + 3 = 8 ✓</strong>. Now it's Black's turn to roll. The game alternates like this every turn.`
-  },
+{b:(()=>{const b=eb();b[7][4]=W('K');b[5][3]=W('R');b[6][0]=W('P');b[6][7]=W('P');b[0][4]=B('K');b[3][3]=B('N');b[3][6]=B('B');b[1][4]=B('P');return b;})(),
+ dice:[2,3],tot:5,pts:'5 pts — Rook can capture!',
+ hl:{sel:[5,3],mvs:[[5,0],[5,1],[5,2],[5,4],[5,5],[5,6],[5,7],[4,3],[6,3],[7,3]],caps:[[3,3]]},sfx:'select',
+ txt:`<span class="tag">CAPTURE AVAILABLE</span>Rook selected. Yellow = empty squares to move to. <strong style="color:#ff9999">Red = enemy Knight</strong> that can be captured for free! The Rook spends its 5pt moving to d5 — and takes the Knight with no additional cost. Captures never cost extra points.`},
 
-  // ── SCENE 8: Free capture ─────────────────────────────────────────────────
-  {
-    board: (() => {
-      const b=emptyBoard();
-      b[7][4]=W('K'); b[5][4]=W('R'); b[6][1]=W('P');
-      b[0][4]=B('K'); b[3][4]=B('N'); b[3][2]=B('P');
-      return b;
-    })(),
-    dice:[2,3], total:5, pts:'5 pts — Rook can capture FREE', hl:{sel:[5,4], mvs:[[4,4],[3,4],[2,4],[1,4],[0,4],[5,3],[5,2],[5,1],[5,5],[5,6],[5,7],[6,4],[7,4]], caps:[[3,4]]},
-    text:`<span class="step-badge">CAPTURE</span>White rolled <strong>5</strong>. Rook selected (5pt). The enemy Knight on e5 is shown in <strong style="color:#ff9999">red</strong> — that means it can be captured. <strong>Captures cost no extra points!</strong> The Rook spends its 5pt moving there and takes the Knight for free.`
-  },
+{b:(()=>{const b=eb();b[7][4]=W('K');b[3][3]=W('R');b[6][0]=W('P');b[6][7]=W('P');b[0][4]=B('K');b[3][6]=B('B');b[1][4]=B('P');return b;})(),
+ dice:[2,3],tot:5,pts:'0 pts — Captured! ✓',
+ hl:{moved:[[3,3]]},sfx:'capture',
+ txt:`<span class="tag">CAPTURED! ✓</span>Rook slides to d5 and captures the Black Knight for free! The Knight is gone from the board. <strong>This is huge strategically</strong> — you removed a strong enemy piece without spending any extra points. Use captures to trade up whenever you can.`},
 
-  // ── SCENE 9: King in check — not enforced! ────────────────────────────────
-  {
-    board: (() => {
-      const b=emptyBoard();
-      b[0][4]=B('K'); b[7][4]=W('K'); b[4][4]=B('R'); // black rook attacks white king
-      b[6][0]=W('P'); b[6][7]=W('P');
-      return b;
-    })(),
-    dice:[1,0], total:1, pts:'1 pt — King in check!', hl:{kingDanger:[7,4]},
-    text:`<span class="step-badge">CHECK</span>White's King has a red ring — it's in check from Black's Rook! <strong>But check is NOT enforced in Dice Chess.</strong> You can leave your King in danger, move other pieces, even move INTO check. The risk: if your opponent rolls the exact points to capture your King, <strong>you lose!</strong>`
-  },
+{b:(()=>{const b=eb();b[7][4]=W('K');b[7][0]=W('R');b[7][1]=W('N');b[7][2]=W('B');b[6][3]=W('P');b[6][4]=W('P');b[6][5]=W('P');b[0][4]=B('K');b[1][3]=B('P');b[1][4]=B('P');b[1][5]=B('P');b[0][0]=B('R');b[0][7]=B('R');return b;})(),
+ dice:[4,4],tot:8,pts:'8 pts — many combos possible!',
+ hl:{hi:[[7,1],[7,2],[6,3],[6,4],[6,5]]},sfx:'roll',
+ txt:`<span class="tag">COMBOS</span>White rolls <strong>8</strong> again — same total, totally different position. Now there are many valid combos: Knight(3)+Bishop(3)+Pawn(1)+Pawn(1)=8, or Bishop(3)+Pawn(1)+Pawn(1)+... The game figures out which pieces can legally form exact totals. You choose the best <em>strategy</em>.`},
 
-  // ── SCENE 10: King capture — must be last point ───────────────────────────
-  {
-    board: (() => {
-      const b=emptyBoard();
-      b[2][4]=B('K'); b[7][4]=W('K'); b[5][4]=W('R');
-      b[6][0]=W('P'); b[6][7]=W('P');
-      return b;
-    })(),
-    dice:[2,3], total:5, pts:'5 pts = Rook captures King! 👑', hl:{sel:[5,4], caps:[[2,4]], mvs:[[4,4],[3,4],[5,3],[5,2],[5,1],[5,5],[5,6],[5,7],[6,4]]},
-    text:`<span class="step-badge">WIN</span>White rolled <strong>5</strong> — exactly a Rook's value. The enemy King is in red — it can be captured! <strong>The King can only be captured if it costs your last remaining point.</strong> If White had rolled 8, capturing King (5pt) would leave 3pt unspent — illegal! Roll 5 → capture with Rook → <strong>White wins! 👑</strong>`
-  },
-
-  // ── SCENE 11: Stalemate explanation ──────────────────────────────────────
-  {
-    board: (() => {
-      const b=emptyBoard();
-      b[0][0]=B('K'); b[7][4]=W('K'); b[7][0]=W('R');
-      b[6][1]=W('P'); b[6][5]=W('P'); b[6][3]=W('P');
-      return b;
-    })(),
-    dice:[4,5], total:9, pts:'9 pts — no valid combo!', hl:{kingDanger:null, hi:[[7,4]]},
-    text:`<span class="step-badge">STALEMATE</span>Black rolled <strong>9</strong>. Only a Queen costs 9pt — but Black has no Queen. Can't make exactly 9 with other pieces. <strong>Must move the King instead.</strong> If the King also has no legal moves… <strong>Stalemate — you lose!</strong> Plan carefully or you may roll yourself into a corner.`
-  },
-
+{b:std(),dice:[null,null],tot:null,pts:null,hl:{},sfx:'ready',
+ txt:`<span class="tag">YOU'RE READY!</span>You now know the basics: <strong>roll → spend exactly → move pieces → captures are free</strong>. That's all you need to start playing! Head to the <strong>Advanced Demo</strong> to learn check, the King rules, stalemate, promotion and castling — or jump straight into a game. You've got this! 🎲`},
 ];
 
-// ─── STATE ───────────────────────────────────────────────────────────────────
-let currentStep = -1; // -1 = not started
-let autoTimer = null;
-let autoPlaying = false;
-const TOTAL = SCENES.length;
+// ── ENGINE ────────────────────────────────────────────────────────────────────
+let cur=0;
 
-// ─── INIT ─────────────────────────────────────────────────────────────────────
 function init(){
-  // Build step dots
-  const dotsEl = document.getElementById('step-dots');
-  dotsEl.innerHTML = '';
-  for(let i=0;i<TOTAL;i++){
-    const d = document.createElement('span');
-    d.className = 'dot';
-    d.title = `Step ${i+1}`;
-    d.onclick = ()=>goToStep(i);
-    dotsEl.appendChild(d);
+  const el=document.getElementById('dots');
+  el.innerHTML='';
+  STEPS.forEach((_,i)=>{
+    const d=document.createElement('span');
+    d.className='dot';
+    d.onclick=()=>go(i);
+    el.appendChild(d);
+  });
+  go(0);
+}
+
+function go(i){
+  if(i<0||i>=STEPS.length)return;
+  cur=i;
+  const s=STEPS[i];
+  document.querySelectorAll('.dot').forEach((d,j)=>{
+    d.className='dot'+(j===i?' active':j<i?' done':'');
+  });
+  document.getElementById('bprev').disabled=i===0;
+  document.getElementById('bnext').disabled=i===STEPS.length-1;
+  document.getElementById('ctr').textContent=`${i+1} / ${STEPS.length}`;
+  if(s.dice[0]!==null){
+    animDice(s.dice[0],s.dice[1]);
+    document.getElementById('dtot').textContent=s.tot;
+    document.getElementById('dpts').textContent=s.pts||'';
+  }else{
+    document.getElementById('d1').textContent='–';
+    document.getElementById('d2').textContent='–';
+    document.getElementById('dtot').textContent='–';
+    document.getElementById('dpts').textContent='';
   }
-  renderStep(-1);
+  document.getElementById('narr').innerHTML=s.txt;
+  if(s.sfx&&SFX[s.sfx])setTimeout(()=>SFX[s.sfx](),60);
+  draw(s.b,s.hl||{});
 }
 
-function goToStep(idx){
-  if(autoPlaying && idx === currentStep) return;
-  currentStep = idx;
-  renderStep(idx);
-}
-
-function stepNext(){
-  if(currentStep < TOTAL-1){goToStep(currentStep+1);}
-}
-function stepPrev(){
-  if(currentStep > 0){goToStep(currentStep-1);}
-}
-function restartDemo(){
-  stopAuto();
-  goToStep(-1);
-}
-
-function toggleAuto(){
-  if(autoPlaying){stopAuto();}
-  else{startAuto();}
-}
-function startAuto(){
-  autoPlaying = true;
-  document.getElementById('btn-auto').classList.add('active-play');
-  document.getElementById('btn-auto').textContent = '⏸ Pause';
-  if(currentStep < 0) goToStep(0);
-  scheduleNext();
-}
-function stopAuto(){
-  autoPlaying = false;
-  clearTimeout(autoTimer);
-  document.getElementById('btn-auto').classList.remove('active-play');
-  document.getElementById('btn-auto').textContent = '⏵ Auto Play';
-}
-function scheduleNext(){
-  if(!autoPlaying) return;
-  const delay = currentStep < 0 ? 400 : 2800;
-  autoTimer = setTimeout(()=>{
-    if(!autoPlaying) return;
-    if(currentStep >= TOTAL-1){stopAuto();return;}
-    goToStep(currentStep+1);
-    scheduleNext();
-  }, delay);
-}
-
-// ─── RENDER ───────────────────────────────────────────────────────────────────
-function renderStep(idx){
-  // Dots
-  document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active', i===idx));
-
-  // Nav buttons
-  document.getElementById('btn-prev').disabled = idx <= 0;
-  document.getElementById('btn-next').disabled = idx >= TOTAL-1;
-  document.getElementById('step-counter').textContent = idx < 0 ? `— / ${TOTAL}` : `${idx+1} / ${TOTAL}`;
-
-  if(idx < 0){
-    // Blank state
-    document.getElementById('die-a').textContent='–';
-    document.getElementById('die-b').textContent='–';
-    document.getElementById('dice-total').textContent='–';
-    document.getElementById('pts-left').textContent='';
-    document.getElementById('narration').innerHTML='<em style="color:var(--gold-dim);">Press ▶ Auto Play or Next to begin the tutorial…</em>';
-    renderBoard(SCENES[0].board, {});
-    return;
-  }
-
-  const scene = SCENES[idx];
-
-  // Dice
-  if(scene.dice[0]){
-    animateDice(scene.dice[0], scene.dice[1], idx);
-  } else {
-    document.getElementById('die-a').textContent='–';
-    document.getElementById('die-b').textContent='–';
-    document.getElementById('dice-total').textContent='–';
-    document.getElementById('pts-left').textContent='';
-  }
-  if(scene.total !== null){
-    document.getElementById('dice-total').textContent = scene.total;
-    document.getElementById('pts-left').textContent = scene.pts || '';
-  }
-
-  // Narration
-  document.getElementById('narration').innerHTML = scene.text;
-
-  // Board
-  renderBoard(scene.board, scene.hl);
-}
-
-function animateDice(d1, d2, sceneIdx){
-  const e1=document.getElementById('die-a'), e2=document.getElementById('die-b');
-  e1.classList.add('rolling'); e2.classList.add('rolling');
-  let n=0;
-  const t=setInterval(()=>{
+function animDice(d1,d2){
+  const e1=document.getElementById('d1'),e2=document.getElementById('d2');
+  e1.classList.add('roll');e2.classList.add('roll');
+  let n=0;const t=setInterval(()=>{
     e1.textContent=Math.floor(Math.random()*6)+1;
     e2.textContent=Math.floor(Math.random()*6)+1;
-    if(++n>6){
-      clearInterval(t);
-      e1.textContent=d1; e2.textContent=d2;
-      e1.classList.remove('rolling'); e2.classList.remove('rolling');
-    }
+    if(++n>7){clearInterval(t);e1.textContent=d1;e2.textContent=d2;e1.classList.remove('roll');e2.classList.remove('roll');}
   },55);
 }
 
-function renderBoard(b, hl){
-  const el = document.getElementById('mini-board');
-  el.innerHTML = '';
-
-  const selKey   = hl.sel   ? `${hl.sel[0]},${hl.sel[1]}`   : null;
-  const kdKey    = hl.kingDanger ? `${hl.kingDanger[0]},${hl.kingDanger[1]}` : null;
-  const mvSet    = new Set((hl.mvs  ||[]).map(([r,c])=>`${r},${c}`));
-  const capSet   = new Set((hl.caps ||[]).map(([r,c])=>`${r},${c}`));
-  const doneSet  = new Set((hl.done ||[]).map(([r,c])=>`${r},${c}`));
-  const hiSet    = new Set((hl.hi   ||[]).map(([r,c])=>`${r},${c}`));
-
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      const sq = document.createElement('div');
-      const key = `${r},${c}`;
-      sq.className = 'msq ' + ((r+c)%2===0?'light':'dark');
-
-      if(key===selKey)         sq.classList.add('sel');
-      else if(capSet.has(key)) sq.classList.add('cap');
-      else if(mvSet.has(key))  sq.classList.add('mv');
-      else if(doneSet.has(key))sq.classList.add('done');
-      else if(hiSet.has(key))  sq.classList.add('hi');
-      if(key===kdKey)          sq.classList.add('king-danger');
-
-      const p = b[r][c];
-      if(p){
-        const span = document.createElement('span');
-        const isNew = doneSet.has(key) || key===selKey;
-        span.className = 'mp ' + (p.color==='w'?'wp':'bp') + (isNew?' landing':'');
-        span.textContent = p.color==='w' ? WG[p.type] : BG[p.type];
-        sq.appendChild(span);
-      }
-      el.appendChild(sq);
-    }
+function draw(b,hl){
+  const el=document.getElementById('board');
+  el.innerHTML='';
+  const sk=hl.sel?`${hl.sel[0]},${hl.sel[1]}`:null;
+  const mv=new Set((hl.mvs||[]).map(([r,c])=>`${r},${c}`));
+  const cp=new Set((hl.caps||[]).map(([r,c])=>`${r},${c}`));
+  const dn=new Set((hl.moved||[]).map(([r,c])=>`${r},${c}`));
+  const hi=new Set((hl.hi||[]).map(([r,c])=>`${r},${c}`));
+  const dg=hl.danger?`${hl.danger[0]},${hl.danger[1]}`:null;
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const sq=document.createElement('div'),k=`${r},${c}`;
+    sq.className='sq '+((r+c)%2===0?'l':'d');
+    if(k===sk)sq.classList.add('sel');
+    else if(cp.has(k))sq.classList.add('cap');
+    else if(mv.has(k))sq.classList.add('mv');
+    else if(dn.has(k))sq.classList.add('moved');
+    else if(hi.has(k))sq.classList.add('hi');
+    if(k===dg)sq.classList.add('danger');
+    const p=b[r][c];
+    if(p){const sp=document.createElement('span');sp.className='pc '+(p.c==='w'?'w':'b')+(dn.has(k)||k===sk?' land':'');sp.textContent=p.c==='w'?WG[p.t]:BG[p.t];sq.appendChild(sp);}
+    el.appendChild(sq);
   }
 }
 
-// ─── START ────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' ')go(cur+1);
+  if(e.key==='ArrowLeft')go(cur-1);
+});
+
 init();
 </script>
 </body>
