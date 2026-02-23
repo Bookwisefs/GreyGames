@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dreidel! 🕎</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;700;900&family=Crimson+Pro:ital,wght@0,300;0,600;1,300&display=swap');
+
+  :root {
+    --gold:#C9A84C; --gold-light:#F0D080; --blue-deep:#0B1F3A;
+    --blue-mid:#1A3A5C; --blue-bright:#2E6DB4; --cream:#F5EDD6;
+    --red:#C0392B; --silver:#B8C9D9; --green:#27AE60;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background:var(--blue-deep); color:var(--cream);
+    font-family:'Crimson Pro',Georgia,serif; min-height:100vh; overflow-x:hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 50%,rgba(46,109,180,0.15) 0%,transparent 60%),
+      radial-gradient(ellipse at 80% 20%,rgba(201,168,76,0.1) 0%,transparent 50%);
+  }
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%,rgba(255,255,255,0.5) 0%,transparent 100%),
+      radial-gradient(1px 1px at 30% 45%,rgba(255,255,255,0.4) 0%,transparent 100%),
+      radial-gradient(1px 1px at 55% 10%,rgba(255,255,255,0.5) 0%,transparent 100%),
+      radial-gradient(1px 1px at 75% 60%,rgba(255,255,255,0.3) 0%,transparent 100%),
+      radial-gradient(1px 1px at 90% 30%,rgba(255,255,255,0.5) 0%,transparent 100%),
+      radial-gradient(1px 1px at 15% 80%,rgba(255,255,255,0.4) 0%,transparent 100%),
+      radial-gradient(1px 1px at 60% 75%,rgba(255,255,255,0.3) 0%,transparent 100%),
+      radial-gradient(1px 1px at 85% 85%,rgba(255,255,255,0.4) 0%,transparent 100%);
+  }
+
+  .container { position:relative; z-index:1; max-width:820px; margin:0 auto; padding:20px; }
+
+  h1 {
+    font-family:'Frank Ruhl Libre',serif; font-size:clamp(2rem,6vw,3.2rem); font-weight:900;
+    text-align:center; color:var(--gold); letter-spacing:0.05em;
+    text-shadow:0 0 40px rgba(201,168,76,0.4),0 2px 4px rgba(0,0,0,0.5); margin-bottom:4px;
+  }
+  .subtitle { text-align:center; color:var(--silver); font-style:italic; font-size:1rem; margin-bottom:24px; }
+
+  .panel {
+    background:rgba(255,255,255,0.04); border:1px solid rgba(201,168,76,0.2);
+    border-radius:12px; padding:20px 22px; backdrop-filter:blur(4px);
+  }
+  .panel h3 { font-family:'Frank Ruhl Libre',serif; font-size:1.1rem; color:var(--gold-light); margin-bottom:12px; }
+
+  label { display:block; font-size:0.88rem; color:var(--silver); margin-bottom:4px; margin-top:10px; }
+  input[type="text"], input[type="number"] {
+    width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(201,168,76,0.3);
+    color:var(--cream); padding:9px 12px; border-radius:8px;
+    font-family:'Crimson Pro',serif; font-size:1rem; outline:none; transition:border-color 0.2s;
+  }
+  input:focus { border-color:var(--gold); }
+
+  .screen { display:none; flex-direction:column; gap:18px; max-width:560px; margin:0 auto; }
+  .screen.active { display:flex; }
+  #screen-game, #screen-guess { max-width:820px; }
+
+  /* Buttons */
+  .btn-primary {
+    background:linear-gradient(135deg,var(--gold),#A07830); color:var(--blue-deep);
+    border:none; padding:12px 24px; border-radius:10px; font-family:'Frank Ruhl Libre',serif;
+    font-size:1.1rem; font-weight:700; letter-spacing:0.06em; cursor:pointer; width:100%;
+    transition:all 0.2s; box-shadow:0 4px 20px rgba(201,168,76,0.3);
+  }
+  .btn-primary:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 30px rgba(201,168,76,0.4); }
+  .btn-primary:disabled { opacity:0.4; cursor:not-allowed; }
+
+  .btn-spin {
+    background:linear-gradient(135deg,#2E6DB4,#1A3A5C); color:var(--cream);
+    border:1px solid var(--blue-bright); padding:12px 24px; border-radius:10px;
+    font-family:'Frank Ruhl Libre',serif; font-size:1.1rem; font-weight:700;
+    letter-spacing:0.06em; cursor:pointer; width:100%; transition:all 0.2s;
+    box-shadow:0 4px 20px rgba(46,109,180,0.3); margin-bottom:8px;
+  }
+  .btn-spin:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 30px rgba(46,109,180,0.5); }
+  .btn-spin:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+
+  .btn-next {
+    background:linear-gradient(135deg,var(--green),#1A5C30); color:var(--cream);
+    border:none; padding:12px 24px; border-radius:10px; font-family:'Frank Ruhl Libre',serif;
+    font-size:1.1rem; font-weight:700; letter-spacing:0.06em; cursor:pointer; width:100%;
+    transition:all 0.2s; box-shadow:0 4px 20px rgba(39,174,96,0.3); margin-bottom:8px;
+  }
+  .btn-next:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 30px rgba(39,174,96,0.5); }
+  .btn-next:disabled { opacity:0.4; cursor:not-allowed; }
+
+  .btn-secondary {
+    background:transparent; color:var(--silver); border:1px solid rgba(255,255,255,0.15);
+    padding:9px 20px; border-radius:8px; font-family:'Crimson Pro',serif;
+    font-size:0.95rem; cursor:pointer; transition:all 0.2s; width:100%;
+  }
+  .btn-secondary:hover { border-color:var(--silver); color:var(--cream); }
+
+  .btn-double {
+    background:linear-gradient(135deg,rgba(192,57,43,0.2),rgba(192,57,43,0.05));
+    color:#FFB3B3; border:1px solid rgba(192,57,43,0.5);
+    padding:11px 24px; border-radius:10px; font-family:'Frank Ruhl Libre',serif;
+    font-size:1rem; font-weight:700; letter-spacing:0.05em; cursor:pointer;
+    transition:all 0.2s; width:100%;
+  }
+  .btn-double:hover:not(:disabled) { background:linear-gradient(135deg,rgba(192,57,43,0.35),rgba(192,57,43,0.15)); border-color:var(--red); color:#fff; transform:translateY(-1px); }
+  .btn-double:disabled { opacity:0.35; cursor:not-allowed; }
+  .btn-double.active { background:linear-gradient(135deg,rgba(192,57,43,0.4),rgba(192,57,43,0.2)); border-color:var(--red); color:#fff; box-shadow:0 0 16px rgba(192,57,43,0.4); }
+
+  .btn-add {
+    background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid rgba(201,168,76,0.4);
+    padding:9px 16px; border-radius:8px; font-family:'Frank Ruhl Libre',serif;
+    font-size:1rem; cursor:pointer; transition:all 0.2s; white-space:nowrap;
+  }
+  .btn-add:hover { background:rgba(201,168,76,0.25); }
+  .btn-icon { background:none; border:none; color:var(--red); cursor:pointer; font-size:1rem; padding:2px 6px; border-radius:4px; }
+
+  /* Room code */
+  .room-code-display {
+    background:rgba(201,168,76,0.1); border:2px solid var(--gold);
+    border-radius:12px; padding:16px; text-align:center;
+  }
+  .room-code-label { font-size:0.8rem; color:var(--gold); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px; }
+  .room-code-value { font-family:'Frank Ruhl Libre',serif; font-size:2.8rem; font-weight:900; color:var(--gold-light); letter-spacing:0.15em; }
+  .room-link { font-size:0.78rem; color:var(--silver); margin-top:6px; word-break:break-all; }
+  .copy-btn {
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:var(--silver);
+    padding:5px 12px; border-radius:6px; font-size:0.78rem; cursor:pointer; margin-top:6px; transition:all 0.2s;
+  }
+  .copy-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+  /* Online pips */
+  .online-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .online-pip { background:rgba(39,174,96,0.15); border:1px solid rgba(39,174,96,0.4); border-radius:20px; padding:3px 10px; font-size:0.8rem; color:#90EE90; }
+  .host-badge { background:rgba(201,168,76,0.2); border:1px solid rgba(201,168,76,0.4); border-radius:20px; padding:2px 8px; font-size:0.72rem; color:var(--gold); margin-left:4px; }
+
+  /* Divider */
+  .divider { display:flex; align-items:center; gap:12px; color:var(--silver); font-size:0.9rem; }
+  .divider::before, .divider::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.1); }
+
+  /* Mode toggles */
+  .mode-pill { display:flex; border-radius:12px; border:1px solid rgba(201,168,76,0.3); overflow:hidden; }
+  .mode-pill-btn {
+    flex:1; padding:12px 8px; border:none; background:transparent; color:var(--silver);
+    font-family:'Frank Ruhl Libre',serif; font-size:0.95rem; cursor:pointer; transition:all 0.2s;
+    text-align:center; line-height:1.3;
+  }
+  .mode-pill-btn.active { background:rgba(201,168,76,0.2); color:var(--gold-light); }
+  .mode-pill-divider { width:1px; background:rgba(201,168,76,0.3); }
+
+  .variant-toggle { display:flex; gap:8px; }
+  .variant-btn {
+    flex:1; padding:11px; border:1px solid rgba(201,168,76,0.3); background:transparent;
+    color:var(--silver); border-radius:8px; cursor:pointer; font-family:'Crimson Pro',serif;
+    font-size:0.92rem; transition:all 0.2s; text-align:center;
+  }
+  .variant-btn.active { background:rgba(201,168,76,0.2); border-color:var(--gold); color:var(--gold-light); }
+
+  /* Roster */
+  .add-row { display:flex; gap:8px; }
+  .add-row input { flex:1; }
+  .roster-list { display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+  .roster-item { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.04); border:1px solid rgba(201,168,76,0.15); border-radius:8px; padding:8px 12px; }
+  .roster-item span { flex:1; }
+
+  /* Game header */
+  .game-header {
+    display:flex; justify-content:space-between; align-items:center;
+    background:rgba(255,255,255,0.03); border:1px solid rgba(201,168,76,0.15);
+    border-radius:10px; padding:10px 16px; font-size:0.88rem; color:var(--silver); flex-wrap:wrap; gap:8px;
+  }
+  .game-header strong { color:var(--gold); font-family:'Frank Ruhl Libre',serif; }
+
+  /* Info bar */
+  .info-bar {
+    background:linear-gradient(135deg,rgba(201,168,76,0.15),rgba(201,168,76,0.05));
+    border:1px solid rgba(201,168,76,0.4); border-radius:12px; padding:12px;
+    display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap;
+  }
+  .info-block { text-align:center; }
+  .info-lbl { font-size:0.72rem; color:var(--gold); letter-spacing:0.1em; text-transform:uppercase; }
+  .info-val { font-family:'Frank Ruhl Libre',serif; font-size:1.7rem; color:var(--gold-light); font-weight:900; }
+  .info-div { width:1px; height:38px; background:rgba(201,168,76,0.3); }
+
+  /* Scoreboard */
+  .scoreboard { display:grid; gap:8px; }
+  .player-card {
+    background:rgba(255,255,255,0.04); border:1px solid rgba(201,168,76,0.15);
+    border-radius:10px; padding:10px 14px; display:flex; align-items:center; gap:12px; transition:all 0.35s;
+  }
+  .player-card.winner-flash { border-color:var(--gold); background:rgba(201,168,76,0.12); box-shadow:0 0 20px rgba(201,168,76,0.3); }
+  .player-card.correct-guess { border-color:#90EE90; background:rgba(39,174,96,0.08); }
+  .player-card.wrong-guess { border-color:var(--red); background:rgba(192,57,43,0.06); }
+  .player-card.dimmed { opacity:0.3; }
+
+  .d-icon { font-size:1.7rem; min-width:34px; text-align:center; display:inline-block; }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  .spinning .d-icon { animation:spin 0.25s linear infinite; }
+
+  .p-info { flex:1; min-width:0; }
+  .p-name { font-family:'Frank Ruhl Libre',serif; font-size:1rem; font-weight:700; }
+  .p-result { font-size:0.8rem; color:var(--silver); font-style:italic; min-height:15px; }
+  .p-result.gimmel { color:#FFD700; font-weight:600; font-style:normal; }
+  .p-result.hey    { color:#90EE90; font-style:normal; }
+  .p-result.nun    { color:var(--silver); }
+  .p-result.shin   { color:var(--red); font-style:normal; }
+
+  .p-scores { text-align:right; min-width:80px; }
+  .p-wins { font-family:'Frank Ruhl Libre',serif; font-size:1.15rem; color:var(--gold); }
+  .p-sub  { font-size:0.72rem; color:var(--silver); }
+  .pos { color:#90EE90; } .neg { color:var(--red); } .zero { color:var(--silver); }
+
+  .prog-wrap { background:rgba(255,255,255,0.05); border-radius:20px; height:4px; margin-top:4px; }
+  .prog-bar  { height:100%; background:linear-gradient(90deg,var(--gold),var(--gold-light)); border-radius:20px; transition:width 0.5s ease; }
+
+  .status-msg { text-align:center; font-style:italic; color:var(--gold-light); font-size:1rem; min-height:22px; }
+  .tie-notice {
+    text-align:center; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.3);
+    border-radius:8px; padding:7px; font-style:italic; color:var(--gold-light); font-size:0.88rem; display:none;
+  }
+
+  /* Results banner */
+  .results-banner {
+    background:rgba(255,255,255,0.04); border:1px solid rgba(201,168,76,0.3);
+    border-radius:12px; padding:14px 18px;
+  }
+  .results-banner h4 { font-family:'Frank Ruhl Libre',serif; color:var(--gold-light); font-size:1rem; margin-bottom:10px; }
+  .result-row { display:flex; align-items:center; gap:10px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+  .result-row:last-child { border-bottom:none; }
+  .result-heb { font-size:1.5rem; min-width:32px; text-align:center; }
+  .result-name { flex:1; font-size:0.95rem; }
+  .result-badge { font-size:0.72rem; padding:2px 8px; border-radius:10px; font-family:'Frank Ruhl Libre',serif; }
+  .badge-win     { background:rgba(201,168,76,0.2); color:var(--gold); border:1px solid rgba(201,168,76,0.4); }
+  .badge-correct { background:rgba(39,174,96,0.2); color:#90EE90; border:1px solid rgba(39,174,96,0.4); }
+  .badge-wrong   { background:rgba(192,57,43,0.15); color:#FFB3B3; border:1px solid rgba(192,57,43,0.3); }
+  .result-letter.gimmel { color:#FFD700; }
+  .result-letter.hey    { color:#90EE90; }
+  .result-letter.nun    { color:var(--silver); }
+  .result-letter.shin   { color:var(--red); }
+
+  /* Guess mode */
+  .guess-grid { display:flex; flex-direction:column; gap:8px; }
+  .guess-player-row { background:rgba(255,255,255,0.04); border:1px solid rgba(201,168,76,0.15); border-radius:10px; padding:10px 14px; }
+  .guess-player-name { font-family:'Frank Ruhl Libre',serif; font-size:0.95rem; margin-bottom:8px; color:var(--cream); }
+  .guess-btns { display:flex; gap:6px; }
+  .guess-btn {
+    flex:1; padding:8px 4px; border-radius:8px; border:1px solid rgba(201,168,76,0.25);
+    background:rgba(255,255,255,0.04); cursor:pointer; text-align:center; transition:all 0.15s;
+    font-family:'Frank Ruhl Libre',serif; font-size:1.1rem; color:var(--cream);
+  }
+  .guess-btn:hover:not(.locked) { border-color:var(--gold); background:rgba(201,168,76,0.1); }
+  .guess-btn.selected { border-color:var(--gold-light); background:rgba(201,168,76,0.2); color:var(--gold-light); }
+  .guess-btn.locked { cursor:default; opacity:0.6; }
+  .guess-btn .g-heb  { display:block; font-size:1.3rem; }
+  .guess-btn .g-name { display:block; font-size:0.58rem; color:var(--silver); margin-top:1px; }
+  .guess-btn.selected .g-name { color:var(--gold); }
+
+  /* Ledgers */
+  .ledger-panel { border-radius:12px; padding:14px 16px; }
+  .ledger-panel.ledger-round   { background:rgba(46,109,180,0.06); border:1px solid rgba(46,109,180,0.3); }
+  .ledger-panel.ledger-session { background:rgba(201,168,76,0.05); border:1px solid rgba(201,168,76,0.25); }
+  .ledger-panel h4 { font-family:'Frank Ruhl Libre',serif; font-size:0.85rem; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px; }
+  .ledger-round h4  { color:var(--blue-bright); }
+  .ledger-session h4 { color:var(--gold); }
+  .ledger-row { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+  .ledger-row:last-child { border-bottom:none; }
+  .ledger-name { flex:1; font-size:0.9rem; color:var(--cream); }
+  .ledger-val  { font-family:'Frank Ruhl Libre',serif; font-size:1.05rem; font-weight:700; min-width:56px; text-align:right; }
+  .ledger-bar-wrap { width:70px; height:5px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden; }
+  .ledger-bar { height:100%; border-radius:4px; transition:width 0.5s ease; }
+  .ledger-bar.up   { background:linear-gradient(90deg,#27AE60,#90EE90); }
+  .ledger-bar.down { background:linear-gradient(90deg,var(--red),#FF8080); }
+  .ledger-bar.blue { background:linear-gradient(90deg,var(--blue-bright),#90C8FF); }
+  .ledger-two-col  { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+  /* Overlay */
+  .overlay { display:none; position:fixed; inset:0; background:rgba(11,31,58,0.9); z-index:100; justify-content:center; align-items:center; backdrop-filter:blur(8px); }
+  .overlay.show { display:flex; }
+  .overlay-box {
+    background:linear-gradient(135deg,rgba(201,168,76,0.12),rgba(46,109,180,0.08));
+    border:2px solid var(--gold); border-radius:18px; padding:32px 36px;
+    max-width:480px; width:90%; box-shadow:0 0 60px rgba(201,168,76,0.25);
+    animation:pop 0.4s cubic-bezier(0.34,1.56,0.64,1); text-align:center;
+  }
+  @keyframes pop { from{transform:scale(0.6);opacity:0} to{transform:scale(1);opacity:1} }
+  .ov-emoji  { font-size:3rem; margin-bottom:10px; }
+  .ov-title  { font-family:'Frank Ruhl Libre',serif; font-size:2rem; color:var(--gold); margin-bottom:6px; }
+  .ov-name   { font-family:'Frank Ruhl Libre',serif; font-size:1.6rem; color:var(--cream); margin-bottom:4px; }
+  .ov-detail { color:var(--silver); font-style:italic; font-size:0.92rem; margin-bottom:18px; }
+  .ov-actions { display:flex; flex-direction:column; gap:10px; }
+
+  /* Hebrew legend */
+  .heb-legend { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; }
+  .hl { text-align:center; background:rgba(255,255,255,0.04); border:1px solid rgba(201,168,76,0.15); border-radius:8px; padding:6px 10px; min-width:62px; }
+  .hl-h { font-size:1.4rem; display:block; }
+  .hl-n { font-size:0.68rem; color:var(--gold); letter-spacing:0.05em; text-transform:uppercase; display:block; }
+  .hl-r { font-size:0.65rem; color:var(--silver); font-style:italic; }
+
+  .info-note { font-size:0.82rem; color:var(--silver); font-style:italic; text-align:center; }
+  .host-only-note { font-size:0.82rem; color:var(--silver); font-style:italic; text-align:center; display:none; }
+
+  /* Spin result card */
+  .spin-result-card {
+    background:rgba(255,255,255,0.04); border:1px solid rgba(201,168,76,0.3);
+    border-radius:14px; padding:16px 18px; display:flex; flex-direction:column; gap:12px;
+  }
+  .spin-result-title {
+    font-family:'Frank Ruhl Libre',serif; font-size:0.82rem; color:var(--gold);
+    letter-spacing:0.1em; text-transform:uppercase; margin-bottom:2px;
+  }
+  /* Guess mode: big single dreidel result */
+  .landed-display {
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    background:rgba(201,168,76,0.08); border:1px solid rgba(201,168,76,0.25);
+    border-radius:10px; padding:12px 16px;
+  }
+  .landed-heb  { font-size:3rem; line-height:1; }
+  .landed-info { text-align:left; }
+  .landed-name { font-family:'Frank Ruhl Libre',serif; font-size:1.4rem; color:var(--gold-light); font-weight:700; }
+  .landed-sub  { font-size:0.8rem; color:var(--silver); }
+  /* Player rows */
+  .spin-player-row {
+    display:flex; align-items:center; gap:10px; padding:7px 10px;
+    border-radius:8px; background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.06);
+  }
+  .spin-player-row.row-win  { background:rgba(201,168,76,0.1);  border-color:rgba(201,168,76,0.4); }
+  .spin-player-row.row-lose { background:rgba(192,57,43,0.07);  border-color:rgba(192,57,43,0.25); }
+  .spin-player-row.row-playoff { background:rgba(46,109,180,0.1); border-color:rgba(46,109,180,0.4); }
+  .spin-player-row.row-dim  { opacity:0.4; }
+  .spr-heb  { font-size:1.6rem; min-width:32px; text-align:center; }
+  .spr-name { flex:1; font-family:'Frank Ruhl Libre',serif; font-size:1rem; }
+  .spr-letter { font-size:0.85rem; color:var(--silver); min-width:52px; }
+  .spr-letter.gimmel { color:#FFD700; font-weight:600; }
+  .spr-letter.hey    { color:#90EE90; }
+  .spr-letter.shin   { color:var(--red); }
+  .spr-badge { font-size:0.75rem; padding:3px 9px; border-radius:10px; font-family:'Frank Ruhl Libre',serif; white-space:nowrap; }
+  .spr-badge.win     { background:rgba(201,168,76,0.2); color:var(--gold); border:1px solid rgba(201,168,76,0.5); }
+  .spr-badge.correct { background:rgba(46,109,180,0.2); color:#90C8FF; border:1px solid rgba(46,109,180,0.5); }
+  .spr-badge.wrong   { background:rgba(192,57,43,0.15); color:#FFB3B3; border:1px solid rgba(192,57,43,0.3); }
+  .spr-badge.neutral { background:rgba(255,255,255,0.06); color:var(--silver); border:1px solid rgba(255,255,255,0.1); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🕎 Dreidel!</h1>
+  <p class="subtitle">Chanukah's finest game of chance</p>
+
+  <!-- ══ SCREEN: ENTRY ══ -->
+  <div id="screen-entry" class="screen active">
+    <div class="heb-legend">
+      <div class="hl"><span class="hl-h">ג</span><span class="hl-n">Gimmel</span><span class="hl-r">Best</span></div>
+      <div class="hl"><span class="hl-h">ה</span><span class="hl-n">Hey</span><span class="hl-r">2nd</span></div>
+      <div class="hl"><span class="hl-h">נ</span><span class="hl-n">Nun</span><span class="hl-r">3rd</span></div>
+      <div class="hl"><span class="hl-h">ש</span><span class="hl-n">Shin</span><span class="hl-r">Lowest</span></div>
+    </div>
+    <div class="panel">
+      <h3>👤 Your Name</h3>
+      <input type="text" id="my-name" placeholder="Enter your name to play">
+    </div>
+    <button class="btn-primary" onclick="createRoom()">✨ Create New Game Room</button>
+    <div class="divider">or join existing</div>
+    <div class="panel">
+      <h3>🔑 Join a Room</h3>
+      <input type="text" id="join-code" placeholder="e.g. XKCD" maxlength="6"
+        style="text-transform:uppercase;letter-spacing:0.15em;font-size:1.3rem;text-align:center">
+      <button class="btn-primary" style="margin-top:12px" onclick="joinRoom()">→ Join Room</button>
+    </div>
+    <div id="entry-error" style="color:var(--red);text-align:center;font-style:italic;min-height:20px;"></div>
+  </div>
+
+  <!-- ══ SCREEN: LOBBY ══ -->
+  <div id="screen-lobby" class="screen">
+    <div class="room-code-display">
+      <div class="room-code-label">🔗 Room Code — share with friends!</div>
+      <div class="room-code-value" id="display-room-code">----</div>
+      <div class="room-link" id="display-room-link"></div>
+      <button class="copy-btn" onclick="copyLink()">📋 Copy shareable link</button>
+    </div>
+
+    <div class="panel">
+      <h3>🌐 Players Online</h3>
+      <div class="online-list" id="online-list"></div>
+    </div>
+
+    <!-- Host-only setup -->
+    <div id="host-setup" style="display:none;">
+      <div class="panel">
+        <h3>🎮 Game Mode</h3>
+        <div class="variant-toggle">
+          <div class="variant-btn active" id="vbtn-classic" onclick="hostSetVariant('classic')">🕎 Classic<br><span style="font-size:0.75rem;color:var(--silver);">Highest spin wins pot</span></div>
+          <div class="variant-btn" id="vbtn-guess" onclick="hostSetVariant('guess')">🎯 Guess Mode<br><span style="font-size:0.75rem;color:var(--silver);">Predict the letter!</span></div>
+        </div>
+      </div>
+
+      <div class="panel" id="win-condition-panel">
+        <h3>🏆 Win Condition <span style="font-size:0.78rem;color:var(--silver);font-family:'Crimson Pro',serif;font-style:italic;">(classic only)</span></h3>
+        <div class="mode-pill">
+          <button class="mode-pill-btn active" id="mpbtn-rounds" onclick="hostSetWinMode('rounds')">🏅 Best of Rounds<br><span style="font-size:0.78rem;">Most spin-wins takes pot</span></button>
+          <div class="mode-pill-divider"></div>
+          <button class="mode-pill-btn" id="mpbtn-points" onclick="hostSetWinMode('points')">⭐ First to N wins<br><span style="font-size:0.78rem;">Race to spin-win target</span></button>
+        </div>
+        <div id="win-input-rounds" style="margin-top:12px;">
+          <label>Number of spins per round</label>
+          <input type="number" id="total-rounds" value="10" min="1" oninput="pushSettings()">
+        </div>
+        <div id="win-input-points" style="margin-top:12px;display:none;">
+          <label>Spin-wins needed to take the pot</label>
+          <input type="number" id="points-goal" value="5" min="1" oninput="pushSettings()">
+        </div>
+      </div>
+      <div class="panel" id="guess-info-panel" style="display:none;">
+        <h3>🎯 Guess Mode</h3>
+        <p style="color:var(--silver);font-size:0.9rem;">Every spin is for money. Everyone pays the stake each spin. Sole correct guesser wins the whole pot. Pot grows until someone wins it solo.</p>
+      </div>
+
+      <div class="panel">
+        <h3>💰 Stake Per Spin</h3>
+        <label>Coins each player puts in per spin</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="stake-amount" value="5" min="1" oninput="pushSettings()" style="flex:1;">
+          <button class="btn-double" style="width:auto;padding:9px 16px;font-size:0.85rem;" onclick="doubleStake()">🎲 Double or Nothing</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>📋 Player Roster</h3>
+        <p class="info-note" style="margin-bottom:10px;">Players who join the link are added automatically.</p>
+        <div class="add-row">
+          <input type="text" id="new-player-name" placeholder="Add player name" onkeydown="if(event.key==='Enter') addRosterPlayer()">
+          <button class="btn-add" onclick="addRosterPlayer()">+ Add</button>
+        </div>
+        <div class="roster-list" id="roster-list"></div>
+      </div>
+
+      <button class="btn-primary" id="btn-start-game" onclick="hostStartGame()" disabled>🎲 Start Game!</button>
+    </div>
+
+    <!-- Non-host waiting view -->
+    <div id="guest-wait" style="display:none;">
+      <div class="panel" style="text-align:center;">
+        <h3>⏳ Waiting for host to start...</h3>
+        <p style="color:var(--silver);font-size:0.9rem;margin-top:8px;">The host is setting up the game.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN: CLASSIC GAME ══ -->
+  <div id="screen-game" class="screen">
+    <div class="game-header">
+      <span><strong id="gh-round">Spin 1</strong></span>
+      <span id="gh-progress"></span>
+      <span id="gh-leader"></span>
+    </div>
+    <div class="info-bar">
+      <div class="info-block">
+        <div class="info-lbl">🪙 Pot</div>
+        <div class="info-val" id="pot-amount">$0</div>
+      </div>
+      <div class="info-div"></div>
+      <div class="info-block">
+        <div class="info-lbl" id="target-lbl">Target</div>
+        <div class="info-val" id="target-val">–</div>
+      </div>
+    </div>
+    <div class="status-msg" id="status-msg">Ready to spin!</div>
+    <div class="tie-notice" id="tie-notice"></div>
+    <div class="scoreboard" id="scoreboard"></div>
+    <div class="results-banner" id="results-banner" style="display:none;"></div>
+    <div class="ledger-two-col" id="classic-ledgers" style="display:none;">
+      <div class="ledger-panel ledger-round">
+        <h4>🏅 This Round</h4>
+        <div id="classic-round-rows"></div>
+      </div>
+      <div class="ledger-panel ledger-session">
+        <h4>💰 Session $</h4>
+        <div id="classic-session-rows"></div>
+      </div>
+    </div>
+    <button class="btn-spin" id="spin-btn" onclick="hostTriggerSpin()" disabled>🌀 SPIN ALL DREIDELS!</button>
+    <button class="btn-next" id="next-btn" onclick="hostNextSpin()" style="display:none;" disabled>Next Spin →</button>
+    <div class="host-only-note" id="classic-host-note">Only the host can spin.</div>
+    <button class="btn-secondary" onclick="confirmReset()">↩ New Game</button>
+  </div>
+
+  <!-- ══ SCREEN: GUESS GAME ══ -->
+  <div id="screen-guess" class="screen">
+    <div class="game-header">
+      <span><strong id="gg-round">Spin 1</strong></span>
+      <span id="gg-progress"></span>
+      <span id="gg-leader"></span>
+    </div>
+    <div class="info-bar">
+      <div class="info-block">
+        <div class="info-lbl">🪙 Pot</div>
+        <div class="info-val" id="guess-pot">$0</div>
+      </div>
+      <div class="info-div"></div>
+      <div class="info-block">
+        <div class="info-lbl">Pot Wins Goal</div>
+        <div class="info-val" id="guess-goal">–</div>
+      </div>
+      <div class="info-div"></div>
+      <div class="info-block">
+        <div class="info-lbl">Leader</div>
+        <div class="info-val" id="guess-leader-val" style="font-size:1rem;">–</div>
+      </div>
+    </div>
+    <div class="status-msg" id="guess-status">Pick your letter, then wait for the spin!</div>
+    <div class="tie-notice" id="guess-tie-notice"></div>
+    <div id="guess-grid" class="guess-grid"></div>
+    <div class="scoreboard" id="guess-scoreboard"></div>
+    <div class="results-banner" id="guess-results-banner" style="display:none;"></div>
+    <div class="ledger-two-col" id="guess-ledgers" style="display:none;">
+      <div class="ledger-panel ledger-round">
+        <h4>🏅 This Round</h4>
+        <div id="guess-round-rows"></div>
+      </div>
+      <div class="ledger-panel ledger-session">
+        <h4>💰 Session $</h4>
+        <div id="guess-session-rows"></div>
+      </div>
+    </div>
+    <button class="btn-double" id="guess-double-btn" onclick="doubleStake()" disabled>🎲 Double or Nothing — stake ×2</button>
+    <button class="btn-spin" id="guess-spin-btn" onclick="hostTriggerGuessSpin()" disabled>🌀 SPIN!</button>
+    <button class="btn-spin" id="guess-playoff-btn" onclick="hostTriggerPlayoffSpin()" style="display:none;" disabled>⚔️ PLAYOFF SPIN!</button>
+    <button class="btn-next" id="guess-next-btn" onclick="hostNextGuessSpin()" style="display:none;" disabled>Next Spin →</button>
+    <div class="host-only-note" id="guess-host-note">Only the host can spin.</div>
+    <button class="btn-secondary" onclick="confirmReset()">↩ New Game</button>
+  </div>
+</div>
+
+<!-- WINNER OVERLAY -->
+<div class="overlay" id="ov-winner">
+  <div class="overlay-box">
+    <div class="ov-emoji">🏆</div>
+    <div class="ov-title">Winner!</div>
+    <div class="ov-name" id="ov-winner-name"></div>
+    <div class="ov-detail" id="ov-winner-detail"></div>
+    <div class="ov-actions">
+      <button class="btn-primary" id="btn-play-again" onclick="hostPlayAgain()">🔄 Play Again</button>
+      <div class="host-only-note" id="winner-host-note">Only the host can restart.</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, update, onValue, remove, serverTimestamp, onDisconnect }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBBSscmGkzsEWK4uw7QyLi5VNiv4Vfsm2M",
+  authDomain: "dreidel-8d1cd.firebaseapp.com",
+  databaseURL: "https://dreidel-8d1cd-default-rtdb.firebaseio.com",
+  projectId: "dreidel-8d1cd",
+  storageBucket: "dreidel-8d1cd.firebasestorage.app",
+  messagingSenderId: "1052615896794",
+  appId: "1:1052615896794:web:e32328d062ec98c3cdbfe3"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ══════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════
+const DREIDEL = [
+  { name:'Gimmel', heb:'ג', val:4, cls:'gimmel' },
+  { name:'Hey',    heb:'ה', val:3, cls:'hey'    },
+  { name:'Nun',    heb:'נ', val:2, cls:'nun'    },
+  { name:'Shin',   heb:'ש', val:1, cls:'shin'   }
+];
+const SPIN_EMOJIS = ['🕎','✡️','⭐','🌟','💫'];
+
+// ══════════════════════════════════
+// LOCAL STATE
+// ══════════════════════════════════
+let roomCode  = null;
+let myName    = null;
+let amHost    = false;
+let roomRef   = null;
+let unsubRoom = null;
+let animating = false;
+let lastSpinTs = 0;
+let lastNextTs = 0;
+let cachedRoom = null;
+
+// ══════════════════════════════════
+// UTILS
+// ══════════════════════════════════
+const $ = id => document.getElementById(id);
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+function genCode() {
+  const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:4}, () => c[Math.floor(Math.random()*c.length)]).join('');
+}
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+function escKey(n) { return n.replace(/[.#$[\]/]/g,'_'); }
+function rosterArr(roster) { return Object.values(roster || {}); }
+
+// ══════════════════════════════════
+// ENTRY
+// ══════════════════════════════════
+window.createRoom = async function() {
+  const name = $('my-name').value.trim();
+  if (!name) { $('entry-error').textContent = 'Please enter your name.'; return; }
+  myName = name; amHost = true;
+  roomCode = genCode();
+  roomRef  = ref(db, `rooms2/${roomCode}`);
+  await set(roomRef, {
+    host: myName,
+    phase: 'lobby',
+    settings: { variant:'classic', winMode:'rounds', totalRounds:10, pointsGoal:50, stake:5 },
+    roster: {},
+    online: {},
+    gameState: null
+  });
+  await joinPresence();
+  await addToRoster(myName);
+  listenRoom();
+  showLobby();
+};
+
+window.joinRoom = async function() {
+  const name = $('my-name').value.trim();
+  const code = $('join-code').value.trim().toUpperCase();
+  if (!name) { $('entry-error').textContent = 'Please enter your name.'; return; }
+  if (!code) { $('entry-error').textContent = 'Please enter a room code.'; return; }
+  const snap = await get(ref(db, `rooms2/${code}`));
+  if (!snap.exists()) { $('entry-error').textContent = 'Room not found. Check the code.'; return; }
+  myName = name; amHost = false; roomCode = code;
+  roomRef = ref(db, `rooms2/${roomCode}`);
+  await joinPresence();
+  await addToRoster(myName);
+  listenRoom();
+};
+
+async function joinPresence() {
+  const meRef = ref(db, `rooms2/${roomCode}/online/${escKey(myName)}`);
+  await set(meRef, { name: myName, joinedAt: serverTimestamp() });
+  onDisconnect(meRef).remove();
+}
+
+async function addToRoster(name) {
+  const key  = escKey(name);
+  const rRef = ref(db, `rooms2/${roomCode}/roster/${key}`);
+  const snap = await get(rRef);
+  if (!snap.exists()) {
+    await set(rRef, { name, sessionNet:0, score:0, guessPoints:0 });
+  }
+}
+
+// URL auto-join
+(function() {
+  const p = new URLSearchParams(window.location.search);
+  const c = p.get('room');
+  if (c) $('join-code').value = c.toUpperCase();
+})();
+
+window.copyLink = function() {
+  const link = `${location.origin}${location.pathname}?room=${roomCode}`;
+  navigator.clipboard.writeText(link);
+  const btn = document.querySelector('.copy-btn');
+  btn.textContent = '✅ Copied!';
+  setTimeout(() => btn.textContent = '📋 Copy shareable link', 2000);
+};
+
+// ══════════════════════════════════
+// FIREBASE LISTENER
+// ══════════════════════════════════
+function listenRoom() {
+  if (unsubRoom) unsubRoom();
+  unsubRoom = onValue(roomRef, snap => {
+    if (!snap.exists()) return;
+    cachedRoom = snap.val();
+    handleRoomUpdate(cachedRoom);
+  });
+}
+
+function handleRoomUpdate(room) {
+  const phase = room.phase;
+  renderOnlineList(room.online || {});
+
+  if (phase === 'lobby') {
+    showLobby();
+    renderRosterList(room.roster || {});
+    syncSettingsDisplay(room.settings || {});
+    const count = rosterArr(room.roster).length;
+    $('btn-start-game').disabled = count < 2;
+  } else if (phase === 'classic') {
+    // Only skip mid-animation; always render once resolve is written
+    if (!animating || !room.gameState?.spinTrigger) renderClassicFromState(room);
+  } else if (phase === 'guess') {
+    if (!animating || !room.gameState?.spinTrigger) renderGuessFromState(room);
+  } else if (phase === 'winner') {
+    showWinnerOverlay(room);
+  }
+
+  // Handle spin trigger for all clients
+  if ((phase === 'classic' || phase === 'guess') && room.gameState?.spinTrigger) {
+    const ts = room.gameState.spinTrigger.timestamp;
+    if (ts !== lastSpinTs) {
+      lastSpinTs = ts;
+      if (phase === 'classic') animateClassicSpin(room);
+      else animateGuessSpin(room);
+    }
+  }
+
+  // Handle next-spin trigger
+  if ((phase === 'classic' || phase === 'guess') && room.gameState?.nextTs) {
+    const ts = room.gameState.nextTs;
+    if (ts !== lastNextTs) {
+      lastNextTs = ts;
+      if (phase === 'classic') applyNextClassic(room);
+      else applyNextGuess(room);
+    }
+  }
+}
+
+// ══════════════════════════════════
+// LOBBY
+// ══════════════════════════════════
+function showLobby() {
+  showScreen('screen-lobby');
+  $('display-room-code').textContent = roomCode;
+  $('display-room-link').textContent = `${location.origin}${location.pathname}?room=${roomCode}`;
+  $('host-setup').style.display  = amHost ? 'block' : 'none';
+  $('guest-wait').style.display  = amHost ? 'none'  : 'block';
+}
+
+function renderOnlineList(online) {
+  const names = Object.values(online).map(o => o.name || Object.keys(online).find(k => online[k] === o));
+  $('online-list').innerHTML = Object.entries(online).map(([k,v]) => {
+    const n = v.name || k;
+    const isHost = n === cachedRoom?.host;
+    return `<div class="online-pip">🟢 ${n}${isHost ? '<span class="host-badge">host</span>' : ''}</div>`;
+  }).join('') || '<div style="color:var(--silver);font-style:italic;font-size:0.88rem;">Waiting...</div>';
+}
+
+function renderRosterList(roster) {
+  $('roster-list').innerHTML = rosterArr(roster).map(p => `
+    <div class="roster-item">
+      <span>🎭 ${p.name}</span>
+      ${amHost ? `<button class="btn-icon" onclick="removeRosterPlayer('${escKey(p.name)}')">✕</button>` : ''}
+    </div>
+  `).join('') || '<div style="color:var(--silver);font-style:italic;font-size:0.88rem;margin-top:6px;">No players yet.</div>';
+}
+
+window.addRosterPlayer = async function() {
+  const inp  = $('new-player-name');
+  const name = inp.value.trim();
+  if (!name) return;
+  await addToRoster(name);
+  inp.value = '';
+  inp.focus();
+};
+
+window.removeRosterPlayer = async function(key) {
+  await remove(ref(db, `rooms2/${roomCode}/roster/${key}`));
+};
+
+// ══════════════════════════════════
+// HOST SETTINGS
+// ══════════════════════════════════
+window.hostSetVariant = function(v) {
+  document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+  $(`vbtn-${v}`).classList.add('active');
+  $('win-condition-panel').style.display = v === 'classic' ? 'block' : 'none';
+  $('guess-info-panel').style.display    = v === 'guess'   ? 'block' : 'none';
+  pushSettings();
+};
+
+window.hostSetWinMode = function(m) {
+  $('mpbtn-rounds').classList.toggle('active', m === 'rounds');
+  $('mpbtn-points').classList.toggle('active', m === 'points');
+  $('win-input-rounds').style.display = m === 'rounds' ? 'block' : 'none';
+  $('win-input-points').style.display = m === 'points' ? 'block' : 'none';
+  pushSettings();
+};
+
+window.pushSettings = function() {
+  const variant  = $('vbtn-classic').classList.contains('active') ? 'classic' : 'guess';
+  const winMode  = $('mpbtn-rounds').classList.contains('active') ? 'rounds' : 'points';
+  update(roomRef, { settings: {
+    variant,
+    winMode,
+    totalRounds: parseInt($('total-rounds').value) || 10,
+    pointsGoal:  parseInt($('points-goal').value)  || 50,
+    stake:       parseInt($('stake-amount').value)  || 5
+  }});
+}
+
+function syncSettingsDisplay(s) {
+  if (s.variant) {
+    document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+    $(`vbtn-${s.variant}`)?.classList.add('active');
+    $('win-condition-panel').style.display = s.variant === 'classic' ? 'block' : 'none';
+    $('guess-info-panel').style.display    = s.variant === 'guess'   ? 'block' : 'none';
+  }
+  if (s.winMode) {
+    $('mpbtn-rounds').classList.toggle('active', s.winMode === 'rounds');
+    $('mpbtn-points').classList.toggle('active', s.winMode === 'points');
+    $('win-input-rounds').style.display = s.winMode === 'rounds' ? 'block' : 'none';
+    $('win-input-points').style.display = s.winMode === 'points' ? 'block' : 'none';
+  }
+  if (s.totalRounds) $('total-rounds').value = s.totalRounds;
+  if (s.pointsGoal)  $('points-goal').value  = s.pointsGoal;
+  if (s.stake)       $('stake-amount').value  = s.stake;
+}
+
+// ══════════════════════════════════
+// HOST: START GAME
+// ══════════════════════════════════
+window.hostStartGame = async function() {
+  const s       = cachedRoom.settings;
+  // Keep sessionNet across games — only reset per-round stats
+  const cleanRoster = {};
+  rosterArr(cachedRoom.roster).forEach(p => {
+    cleanRoster[escKey(p.name)] = { name:p.name, sessionNet: p.sessionNet||0, score:0, guessPoints:0 };
+  });
+
+  const gs = {
+    spinCount:   0,
+    guessPot:    0,
+    inPlayoff:   false,
+    playoffNames:[],
+    guesses:     {},    // name -> dreidelIdx (for guess mode)
+    lastResults: null,
+    lastSpin:    null,
+    spinTrigger: null,
+    nextTs:      null,
+    statusMsg:   s.variant === 'classic' ? 'Ready to spin!' : 'Pick your letter, then wait for the spin!',
+    tieMsg:      '',
+    showResults: false,
+    showNext:    false,
+    winner:      null
+  };
+
+  // For guess mode: charge everyone for spin 1 immediately so pot shows before first spin
+  if (s.variant === 'guess') {
+    const initialPot = rosterArr(cleanRoster).length * s.stake;
+    gs.guessPot  = initialPot;
+    gs.statusMsg = `Pot is $${initialPot} — pick your letter!`;
+    rosterArr(cleanRoster).forEach(p => {
+      cleanRoster[escKey(p.name)].sessionNet = (p.sessionNet || 0) - s.stake;
+    });
+  }
+
+  await update(roomRef, {
+    phase:   s.variant,
+    roster:  cleanRoster,
+    gameState: gs
+  });
+};
+
+// ══════════════════════════════════
+// CLASSIC: RENDER FROM STATE
+// ══════════════════════════════════
+function renderClassicFromState(room) {
+  showScreen('screen-game');
+  const s   = room.settings;
+  const gs  = room.gameState;
+  const players = rosterArr(room.roster);
+
+  // Header
+  $('gh-round').textContent    = `Spin ${gs.spinCount + 1}`;
+  $('gh-progress').textContent = s.winMode === 'rounds' ? `${gs.spinCount}/${s.totalRounds} spins` : `First to ${s.pointsGoal}`;
+  $('target-lbl').textContent  = s.winMode === 'rounds' ? 'Rounds' : 'Goal';
+  $('target-val').textContent  = s.winMode === 'rounds' ? s.totalRounds : s.pointsGoal;
+  // Pot is always stake × numPlayers, paid once at round start
+  const roundPot = players.length * s.stake;
+  $('pot-amount').textContent = `$${roundPot}`;
+  const leader = [...players].sort((a,b) => (b.score||0) - (a.score||0))[0];
+  $('gh-leader').textContent   = leader ? `🏅 ${leader.name}` : '';
+
+  // Scoreboard
+  const sb = $('scoreboard');
+  sb.style.gridTemplateColumns = players.length > 3 ? '1fr 1fr' : '1fr';
+  sb.innerHTML = players.map((p,i) => {
+    const score = p.score || 0;
+    const goal  = s.winMode === 'rounds' ? s.totalRounds : s.pointsGoal;
+    return `
+      <div class="player-card" id="pc-${i}">
+        <span class="d-icon" id="di-${i}">🕎</span>
+        <div class="p-info">
+          <div class="p-name">${p.name}</div>
+          <div class="p-result" id="pr-${i}">${gs.lastSpin?.[p.name] ? gs.lastSpin[p.name].name + '!' : 'Ready...'}</div>
+          <div class="prog-wrap"><div class="prog-bar" id="pb-${i}" style="width:${Math.min((Math.abs(score)/Math.max(goal,1))*100,100)}%"></div></div>
+        </div>
+        <div class="p-scores">
+          <div class="p-wins" id="pw-${i}">${score}</div>
+          <div class="p-sub">spin wins</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Restore spin result classes
+  if (gs.lastSpin) {
+    players.forEach((p,i) => {
+      const r = gs.lastSpin[p.name];
+      if (r) {
+        const el = $(`pr-${i}`);
+        if (el) { el.textContent = r.name + '!'; el.className = `p-result ${r.cls}`; }
+        const di = $(`di-${i}`);
+        if (di) di.textContent = r.heb;
+      }
+    });
+  }
+
+  // Status / tie
+  $('status-msg').textContent = gs.statusMsg || 'Ready to spin!';
+  $('tie-notice').style.display = gs.tieMsg ? 'block' : 'none';
+  $('tie-notice').textContent   = gs.tieMsg || '';
+
+  // Results
+  if (gs.showResults && gs.lastResults) {
+    $('results-banner').style.display = 'block';
+    $('results-banner').innerHTML = gs.lastResults;
+  } else {
+    $('results-banner').style.display = 'none';
+  }
+
+  // Ledger
+  renderBothLedgers(room.roster, s, 'classic-ledgers', 'classic-round-rows', 'classic-session-rows');
+
+  // Buttons
+  const canSpin = !gs.showNext;
+  $('spin-btn').style.display = gs.showNext ? 'none' : 'block';
+  $('spin-btn').disabled = !canSpin;
+  $('next-btn').style.display = gs.showNext ? 'block' : 'none';
+  $('next-btn').disabled = false;
+  $('classic-host-note').style.display = 'none';
+}
+
+// ══════════════════════════════════
+// CLASSIC: HOST TRIGGERS SPIN
+// ══════════════════════════════════
+window.hostTriggerSpin = async function() {
+  if (animating) return;
+  const gs      = cachedRoom.gameState;
+  const players = rosterArr(cachedRoom.roster);
+
+  // Determine active spinners
+  const activePlayers = gs.inPlayoff && gs.playoffNames.length
+    ? gs.playoffNames
+    : players.map(p => p.name);
+
+  // Roll dice
+  const results = {};
+  activePlayers.forEach(name => {
+    results[name] = DREIDEL[Math.floor(Math.random() * DREIDEL.length)];
+  });
+
+  await update(ref(db, `rooms2/${roomCode}/gameState`), {
+    spinTrigger: { activePlayers, results, timestamp: Date.now() }
+  });
+};
+
+async function animateClassicSpin(room) {
+  if (animating) return;
+  animating = true;
+  $('spin-btn').disabled = true;
+
+  const gs      = room.gameState;
+  const trigger = gs.spinTrigger;
+  const players = rosterArr(room.roster);
+  const s       = room.settings;
+
+  // Dim non-active
+  players.forEach((p,i) => {
+    $(`pc-${i}`)?.classList.toggle('dimmed', !trigger.activePlayers.includes(p.name));
+    const pr = $(`pr-${i}`);
+    if (pr && trigger.activePlayers.includes(p.name)) { pr.textContent = '...'; pr.className = 'p-result'; }
+  });
+
+  // Spin animation
+  const activeIdxs = players.map((p,i) => trigger.activePlayers.includes(p.name) ? i : -1).filter(i => i >= 0);
+  activeIdxs.forEach(i => $(`pc-${i}`)?.classList.add('spinning'));
+
+  const dur = 1200 + Math.random() * 700;
+  const iv  = setInterval(() => {
+    activeIdxs.forEach(i => { const el = $(`di-${i}`); if (el) el.textContent = SPIN_EMOJIS[Math.floor(Math.random()*SPIN_EMOJIS.length)]; });
+  }, 75);
+
+  await delay(dur);
+  clearInterval(iv);
+
+  // Land
+  activeIdxs.forEach(i => {
+    const p   = players[i];
+    const res = trigger.results[p.name];
+    $(`pc-${i}`)?.classList.remove('spinning');
+    const di = $(`di-${i}`); if (di) di.textContent = res.heb;
+    const pr = $(`pr-${i}`); if (pr) { pr.textContent = res.name + '!'; pr.className = `p-result ${res.cls}`; }
+  });
+
+  await delay(400);
+
+  // Host resolves outcome
+  if (amHost) await resolveClassicSpin(room, trigger);
+
+  animating = false;
+  // Re-render with latest state (Firebase listener skipped while animating)
+  if (cachedRoom) {
+    if (cachedRoom.phase === 'classic') renderClassicFromState(cachedRoom);
+    else if (cachedRoom.phase === 'guess') renderGuessFromState(cachedRoom);
+  }
+};
+
+async function resolveClassicSpin(room, trigger) {
+  const players = rosterArr(room.roster);
+  const s       = room.settings;
+  const gs      = room.gameState;
+
+  const active  = trigger.activePlayers;
+  const results = trigger.results;
+
+  const maxVal  = Math.max(...active.map(n => results[n].val));
+  const winners = active.filter(n => results[n].val === maxVal);
+
+  const roster = {};
+  players.forEach(p => { roster[escKey(p.name)] = { ...p }; });
+
+  // Pot is fixed: stake × numPlayers, paid once per round
+  const roundPot     = players.length * s.stake;
+  const newSpinCount = (gs.spinCount || 0) + 1;
+
+  let gsUpdate = {
+    lastSpin:    results,
+    spinTrigger: null,
+    showResults: true,
+    showNext:    true,
+    spinCount:   newSpinCount
+  };
+
+  if (winners.length > 1) {
+    // Tie — go straight to tiebreaker, do NOT show Next Spin (that would clear inPlayoff)
+    gsUpdate.tieMsg       = `🔄 Tie! ${winners.join(' & ')} — tiebreaker spin!`;
+    gsUpdate.statusMsg    = `Tiebreaker: ${winners.join(' & ')} spin again!`;
+    gsUpdate.inPlayoff    = true;
+    gsUpdate.playoffNames = winners;
+    gsUpdate.spinCount    = gs.spinCount || 0; // tiebreaker doesn't consume a spin
+    gsUpdate.showNext     = false;             // host spins again immediately (tied players only)
+    gsUpdate.lastResults  = buildClassicResultsHTML(active, results, null, false, roundPot, s.stake, null);
+  } else {
+    const winName  = winners[0];
+    roster[escKey(winName)].score = (roster[escKey(winName)].score || 0) + 1;
+
+    gsUpdate.inPlayoff    = false;
+    gsUpdate.playoffNames = [];
+    gsUpdate.tieMsg       = '';
+
+    // Is the round over?
+    const spinsLeft = s.winMode === 'rounds'
+      ? s.totalRounds - newSpinCount      // count down total spins
+      : null;                              // points mode: no spin limit
+
+    const newScore     = roster[escKey(winName)].score;
+    const roundOver    = s.winMode === 'rounds'
+      ? newSpinCount >= s.totalRounds      // all spins used up
+      : newScore >= s.pointsGoal;          // someone hit the points target
+
+    if (roundOver) {
+      // Find round winner: most spin-wins (rounds mode) or who hit points goal (points mode)
+      const updatedScores = players.map(p => ({ name: p.name, score: roster[escKey(p.name)].score || 0 }));
+      const roundWinner   = updatedScores.sort((a,b) => b.score - a.score)[0].name;
+
+      // Settle $: winner gets (n-1)*stake net, everyone else loses stake
+      players.forEach(p => {
+        const key = escKey(p.name);
+        roster[key].sessionNet = (p.sessionNet || 0) + (p.name === roundWinner
+          ? (players.length - 1) * s.stake    // winner: up $15 with 4p/$5 stake
+          : -s.stake);                         // loser: down $5
+      });
+
+      // Reset spin-wins for next round
+      players.forEach(p => { roster[escKey(p.name)].score = 0; });
+
+      gsUpdate.statusMsg   = `🏆 ${roundWinner} wins the round and collects $${roundPot}!`;
+      gsUpdate.lastResults = buildClassicResultsHTML(active, results, winName, true, roundPot, s.stake, roundWinner, players);
+      gsUpdate.roundWinner = roundWinner;
+    } else {
+      const progress = s.winMode === 'rounds'
+        ? `Spin ${newSpinCount}/${s.totalRounds}`
+        : `${newScore}/${s.pointsGoal} wins`;
+      gsUpdate.statusMsg   = `🎯 ${winName} wins this spin! (${progress})`;
+      gsUpdate.lastResults = buildClassicResultsHTML(active, results, winName, false, roundPot, s.stake, null, players);
+    }
+  }
+
+  const updates = {};
+  Object.entries(gsUpdate).forEach(([k,v]) => { updates[`gameState/${k}`] = v; });
+  players.forEach(p => { updates[`roster/${escKey(p.name)}`] = roster[escKey(p.name)]; });
+  await update(roomRef, updates);
+
+  if (gsUpdate.roundWinner) {
+    await delay(1200);
+    await update(roomRef, { phase: 'winner', 'gameState/winnerName': gsUpdate.roundWinner });
+  }
+}
+
+function buildClassicResultsHTML(active, results, spinWinner, isRoundEnd, roundPot, stake, roundWinner, allPlayers) {
+  const title = isRoundEnd
+    ? `🏆 Round Over — ${roundWinner} takes the $${roundPot} pot!`
+    : `Spin Result · <span style="color:var(--gold-light)">$${roundPot} pot this round</span>`;
+  let html = `<div class="spin-result-card">
+    <div class="spin-result-title">${title}</div>`;
+  active.forEach(name => {
+    const r = results[name];
+    const isWinner = name === spinWinner;
+    const isRoundWinner = name === roundWinner;
+    let rowCls = '', badge = '';
+    if (isRoundEnd) {
+      rowCls = isRoundWinner ? 'row-win' : 'row-lose';
+      badge  = isRoundWinner
+        ? `<span class="spr-badge win">🏆 +$${(allPlayers.length-1)*stake}</span>`
+        : `<span class="spr-badge wrong">-$${stake}</span>`;
+    } else if (isWinner) {
+      rowCls = 'row-win';
+      badge  = `<span class="spr-badge win">✅ +1 spin win</span>`;
+    }
+    html += `<div class="spin-player-row ${rowCls}">
+      <span class="spr-heb">${r.heb}</span>
+      <span class="spr-name">${name}</span>
+      <span class="spr-letter ${r.cls}">${r.name}</span>
+      ${badge}
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+window.hostNextSpin = async function() {
+  await update(ref(db, `rooms2/${roomCode}/gameState`), {
+    showResults:  false,
+    showNext:     false,
+    nextTs:       Date.now(),
+    statusMsg:    'Ready to spin!',
+    tieMsg:       '',
+    inPlayoff:    false,
+    playoffNames: []
+  });
+};
+
+function applyNextClassic(room) {
+  $('results-banner').style.display = 'none';
+  $('tie-notice').style.display     = 'none';
+  $('status-msg').textContent       = 'Ready to spin!';
+  $('spin-btn').style.display       = 'block';
+  $('spin-btn').disabled            = !amHost;
+  $('next-btn').style.display       = 'none';
+  // Undim all
+  rosterArr(room.roster).forEach((_,i) => $(`pc-${i}`)?.classList.remove('dimmed'));
+}
+
+// ══════════════════════════════════
+// GUESS: RENDER FROM STATE
+// ══════════════════════════════════
+function renderGuessFromState(room) {
+  showScreen('screen-guess');
+  const s       = room.settings;
+  const gs      = room.gameState;
+  const players = rosterArr(room.roster);
+
+  // Header
+  const spinLabel = gs.inPlayoff ? '⚔️ Playoff!' : `Spin ${gs.spinCount + 1}`;
+  $('gg-round').textContent    = spinLabel;
+  $('gg-progress').textContent = `First to ${s.pointsGoal} pot wins`;
+  $('guess-goal').textContent  = s.pointsGoal;
+  $('guess-pot').textContent   = `$${gs.guessPot || 0}`;
+  const leader = [...players].sort((a,b) => (b.guessPoints||0) - (a.guessPoints||0))[0];
+  $('gg-leader').textContent       = leader ? `🏅 ${leader.name}` : '';
+  $('guess-leader-val').textContent = leader ? `${leader.name} (${leader.guessPoints||0})` : '–';
+
+  // Guess grid
+  const activeNames = gs.inPlayoff ? gs.playoffNames : players.map(p => p.name);
+  renderGuessGrid(players, gs.guesses || {}, activeNames, gs.showNext || gs.showResults);
+
+  // Scoreboard
+  renderGuessScoreboard(players, s);
+
+  // Status
+  $('guess-status').textContent = gs.statusMsg || 'Pick your letter!';
+  $('guess-tie-notice').style.display = gs.tieMsg ? 'block' : 'none';
+  $('guess-tie-notice').textContent   = gs.tieMsg || '';
+
+  // Results
+  if (gs.showResults && gs.lastResults) {
+    $('guess-results-banner').style.display = 'block';
+    $('guess-results-banner').innerHTML = gs.lastResults;
+  } else {
+    $('guess-results-banner').style.display = 'none';
+  }
+
+  // Ledger
+  renderBothLedgers(room.roster, s, 'guess-ledgers', 'guess-round-rows', 'guess-session-rows');
+
+  // Buttons
+  const allGuessed = activeNames.every(n => (gs.guesses||{})[escKey(n)] !== undefined);
+  const canGuessDouble = !gs.inPlayoff && !gs.showNext;
+  $('guess-double-btn').style.display  = canGuessDouble ? 'block' : 'none';
+  $('guess-double-btn').disabled       = false;
+  $('guess-spin-btn').style.display    = (!gs.inPlayoff && !gs.showNext) ? 'block' : 'none';
+  $('guess-spin-btn').disabled         = !allGuessed;
+  $('guess-playoff-btn').style.display = (gs.inPlayoff && !gs.showNext) ? 'block' : 'none';
+  $('guess-playoff-btn').disabled      = !allGuessed;
+  $('guess-next-btn').style.display    = gs.showNext ? 'block' : 'none';
+  $('guess-next-btn').disabled         = false;
+  $('guess-host-note').style.display   = 'none';
+}
+
+function renderGuessGrid(players, guesses, activeNames, locked) {
+  $('guess-grid').innerHTML = activeNames.map(name => {
+    const selectedIdx = guesses[escKey(name)];
+    const isMe = name === myName;
+    const canGuess = !locked;
+    return `
+      <div class="guess-player-row">
+        <div class="guess-player-name">🎭 ${name}${isMe ? ' (you)' : ''} — ${selectedIdx !== undefined ? '✅ locked in' : 'pick a letter:'}</div>
+        <div class="guess-btns">
+          ${DREIDEL.map((d,di) => `
+            <div class="guess-btn ${selectedIdx === di ? 'selected' : ''} ${!canGuess ? 'locked' : ''}"
+              onclick="${canGuess ? `submitGuess('${escKey(name)}',${di})` : ''}">
+              <span class="g-heb">${d.heb}</span>
+              <span class="g-name">${d.name}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderGuessScoreboard(players, s) {
+  const sb = $('guess-scoreboard');
+  sb.style.gridTemplateColumns = players.length > 3 ? '1fr 1fr' : '1fr';
+  sb.innerHTML = players.map((p,i) => `
+    <div class="player-card" id="gpc-${i}">
+      <span class="d-icon" id="gdi-${i}">🕎</span>
+      <div class="p-info">
+        <div class="p-name">${p.name}</div>
+        <div class="p-result" id="gpr-${i}">Ready...</div>
+        <div class="prog-wrap"><div class="prog-bar" id="gpb-${i}" style="width:${Math.min(((p.guessPoints||0)/s.pointsGoal)*100,100)}%"></div></div>
+      </div>
+      <div class="p-scores">
+        <div class="p-wins" id="gpw-${i}">${p.guessPoints||0}</div>
+        <div class="p-sub">pot wins</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Anyone can submit their own guess
+window.submitGuess = async function(nameKey, dreidelIdx) {
+  const gs = cachedRoom?.gameState;
+  if (!gs || gs.showResults || gs.showNext) return;
+  await update(ref(db, `rooms2/${roomCode}/gameState/guesses`), { [nameKey]: dreidelIdx });
+};
+
+window.hostTriggerGuessSpin = async function() {
+  if (animating) return;
+  const gs      = cachedRoom.gameState;
+  const players = rosterArr(cachedRoom.roster);
+  const active  = players.map(p => p.name);
+
+  const landed = DREIDEL[Math.floor(Math.random() * DREIDEL.length)];
+  await update(roomRef, {
+    'gameState/spinTrigger': { activePlayers: active, landed, isPlayoff: false, timestamp: Date.now() }
+  });
+};
+
+window.hostTriggerPlayoffSpin = async function() {
+  if (animating) return;
+  const gs     = cachedRoom.gameState;
+  const active = gs.playoffNames;
+  const landed = DREIDEL[Math.floor(Math.random() * DREIDEL.length)];
+  await update(ref(db, `rooms2/${roomCode}/gameState`), {
+    spinTrigger: { activePlayers: active, landed, isPlayoff: true, timestamp: Date.now() }
+  });
+};
+
+async function animateGuessSpin(room) {
+  if (animating) return;
+  animating = true;
+  $('guess-spin-btn').disabled    = true;
+  $('guess-playoff-btn').disabled = true;
+
+  const gs      = room.gameState;
+  const trigger = gs.spinTrigger;
+  const players = rosterArr(room.roster);
+  const s       = room.settings;
+  const landed  = trigger.landed;
+  const active  = trigger.activePlayers;
+
+  // Dim non-active
+  players.forEach((p,i) => {
+    $(`gpc-${i}`)?.classList.toggle('dimmed', !active.includes(p.name));
+    const pr = $(`gpr-${i}`);
+    if (pr && active.includes(p.name)) { pr.textContent = '...'; pr.className = 'p-result'; }
+  });
+
+  const activeIdxs = players.map((p,i) => active.includes(p.name) ? i : -1).filter(i => i >= 0);
+  activeIdxs.forEach(i => $(`gpc-${i}`)?.classList.add('spinning'));
+
+  const dur = 1200 + Math.random() * 700;
+  const iv  = setInterval(() => {
+    activeIdxs.forEach(i => { const el = $(`gdi-${i}`); if (el) el.textContent = SPIN_EMOJIS[Math.floor(Math.random()*SPIN_EMOJIS.length)]; });
+  }, 75);
+
+  await delay(dur);
+  clearInterval(iv);
+
+  // Land — show same letter for everyone
+  activeIdxs.forEach(i => {
+    $(`gpc-${i}`)?.classList.remove('spinning');
+    const di = $(`gdi-${i}`); if (di) di.textContent = landed.heb;
+    const pr = $(`gpr-${i}`); if (pr) { pr.textContent = landed.name + '!'; pr.className = `p-result ${landed.cls}`; }
+  });
+
+  await delay(400);
+
+  if (amHost) await resolveGuessSpin(room, trigger);
+  animating = false;
+  if (cachedRoom) {
+    if (cachedRoom.phase === 'classic') renderClassicFromState(cachedRoom);
+    else if (cachedRoom.phase === 'guess') renderGuessFromState(cachedRoom);
+  }
+}
+
+async function resolveGuessSpin(room, trigger) {
+  const players = rosterArr(room.roster);
+  const s       = room.settings;
+  const gs      = room.gameState;
+  const landed  = trigger.landed;
+  const active  = trigger.activePlayers; // all players for normal spin, just 2 for playoff
+  const guesses = gs.guesses || {};
+
+  const correct = active.filter(n => {
+    const idx = guesses[escKey(n)];
+    return idx !== undefined && DREIDEL[idx].name === landed.name;
+  });
+
+  const roster = {};
+  players.forEach(p => { roster[escKey(p.name)] = { ...p }; });
+
+  let gsUpdate = {
+    lastSpin:    { [landed.name]: landed },
+    spinTrigger: null,
+    showResults: true,
+    showNext:    true,
+    guesses:     {}
+  };
+
+  // Pot is already charged (happened in hostNextGuessSpin before guessing)
+  // Playoff: pot unchanged, no new charges
+  let currentPot = gs.guessPot || 0;
+
+  if (correct.length === 0) {
+    // Nobody right — pot rolls over to next spin
+    const msg = trigger.isPlayoff
+      ? `Neither guessed right! Pot is $${currentPot} — everyone pays again next spin! 🏦`
+      : `Nobody guessed ${landed.name}! Pot grows to $${currentPot}! 🏦`;
+    gsUpdate.statusMsg    = msg;
+    gsUpdate.inPlayoff    = false;
+    gsUpdate.playoffNames = [];
+    gsUpdate.tieMsg       = '';
+    gsUpdate.lastResults  = buildGuessResultsHTML(players, active, guesses, landed, correct, null, s.stake, currentPot, trigger.isPlayoff);
+
+  } else if (correct.length === 1) {
+    // Sole winner — takes entire pot
+    const winName = correct[0];
+    roster[escKey(winName)].sessionNet  = (roster[escKey(winName)].sessionNet || 0) + currentPot;
+    roster[escKey(winName)].guessPoints = (roster[escKey(winName)].guessPoints || 0) + 1;
+    gsUpdate.guessPot     = 0;
+    gsUpdate.statusMsg    = `🎉 ${winName} takes the $${currentPot} pot!`;
+    gsUpdate.inPlayoff    = false;
+    gsUpdate.playoffNames = [];
+    gsUpdate.tieMsg       = '';
+    gsUpdate.lastResults  = buildGuessResultsHTML(players, active, guesses, landed, correct, winName, s.stake, currentPot, trigger.isPlayoff);
+
+  } else {
+    // Multiple correct — playoff, no extra charge, pot stays
+    gsUpdate.guessPot     = currentPot;
+    gsUpdate.inPlayoff    = true;
+    gsUpdate.playoffNames = correct;
+    gsUpdate.tieMsg       = `⚔️ ${correct.join(' & ')} both guessed right — playoff for $${currentPot}!`;
+    gsUpdate.statusMsg    = `Playoff! ${correct.join(' & ')} — pick a letter to spin for the $${currentPot} pot!`;
+    gsUpdate.showNext     = false;
+    gsUpdate.showResults  = false; // unlock guess buttons so playoff players can pick
+    gsUpdate.lastResults  = buildGuessResultsHTML(players, active, guesses, landed, correct, null, s.stake, currentPot, trigger.isPlayoff);
+  }
+
+  const updates = {};
+  Object.entries(gsUpdate).forEach(([k,v]) => { updates[`gameState/${k}`] = v; });
+  players.forEach(p => { updates[`roster/${escKey(p.name)}`] = roster[escKey(p.name)]; });
+  await update(roomRef, updates);
+
+  if (gsUpdate.winner) {
+    await delay(800);
+    await update(roomRef, { phase: 'winner', 'gameState/winnerName': gsUpdate.winner });
+  }
+}
+
+function buildGuessResultsHTML(allPlayers, active, guesses, landed, correct, winName, stake, pot, isPlayoff) {
+  // Big central dreidel result
+  const headline = winName
+    ? `${winName} wins the $${pot} pot!`
+    : correct.length > 1
+      ? `Playoff! ${correct.join(' & ')} both guessed right`
+      : `Nobody guessed ${landed.name} — pot grows to $${pot}`;
+
+  let html = `<div class="spin-result-card">
+    <div class="spin-result-title">${isPlayoff ? '⚔️ Playoff Spin' : '🎲 Dreidel Spun'}</div>
+    <div class="landed-display">
+      <span class="landed-heb ${landed.cls}">${landed.heb}</span>
+      <div class="landed-info">
+        <div class="landed-name">${landed.name}</div>
+        <div class="landed-sub">${headline}</div>
+      </div>
+    </div>`;
+
+  // Player rows
+  allPlayers.forEach(p => {
+    const name      = p.name;
+    const inActive  = active.includes(name);
+    const idx       = guesses[escKey(name)];
+    const g         = idx !== undefined ? DREIDEL[idx] : null;
+    const isCorrect = correct.includes(name);
+    const isWinner  = name === winName;
+    const paid      = !isPlayoff; // everyone paid this spin if not playoff
+
+    let rowCls = '', badge = '';
+    if (isWinner) {
+      rowCls = 'row-win';
+      const netGain = pot - (paid ? stake : 0);
+      badge = `<span class="spr-badge win">🏆 +$${pot} (net +$${netGain})</span>`;
+    } else if (isCorrect) {
+      rowCls = 'row-playoff';
+      badge  = `<span class="spr-badge correct">⚔️ Playoff!</span>`;
+    } else if (inActive && paid) {
+      rowCls = 'row-lose';
+      badge  = `<span class="spr-badge wrong">-$${stake}</span>`;
+    } else if (!inActive && isPlayoff) {
+      rowCls = 'row-dim';
+      badge  = `<span class="spr-badge neutral">watching</span>`;
+    } else if (paid) {
+      rowCls = 'row-lose';
+      badge  = `<span class="spr-badge wrong">-$${stake}</span>`;
+    }
+
+    const guessHeb  = g ? g.heb  : '?';
+    const guessName = g ? g.name : '?';
+    const hit       = g && g.name === landed.name;
+
+    html += `<div class="spin-player-row ${rowCls}">
+      <span class="spr-heb">${inActive ? guessHeb : '–'}</span>
+      <span class="spr-name">${name}</span>
+      <span class="spr-letter ${g ? g.cls : ''}">guessed: ${inActive ? guessName : '–'}</span>
+      ${badge}
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+window.hostNextGuessSpin = async function() {
+  const gs      = cachedRoom.gameState;
+  const s       = cachedRoom.settings;
+  const players = rosterArr(cachedRoom.roster);
+
+  // Charge everyone stake NOW — pot shows what's at stake before the spin
+  const newPot = (gs.guessPot || 0) + players.length * s.stake;
+  const rosterUpdates = {};
+  players.forEach(p => {
+    rosterUpdates[`roster/${escKey(p.name)}`] = { ...p, sessionNet: (p.sessionNet||0) - s.stake };
+  });
+
+  await update(roomRef, {
+    ...rosterUpdates,
+    'gameState/showResults':  false,
+    'gameState/showNext':     false,
+    'gameState/nextTs':       Date.now(),
+    'gameState/guessPot':     newPot,
+    'gameState/statusMsg':    `Pot is $${newPot} — everyone pick a letter!`,
+    'gameState/tieMsg':       '',
+    'gameState/inPlayoff':    false,
+    'gameState/playoffNames': [],
+    'gameState/guesses':      {}
+  });
+};
+
+function applyNextGuess(room) {
+  $('guess-results-banner').style.display = 'none';
+  $('guess-tie-notice').style.display     = 'none';
+  const gs = room.gameState;
+  $('guess-status').textContent = gs?.statusMsg || 'Pick your letter!';
+  // Undim all
+  rosterArr(room.roster).forEach((_,i) => $(`gpc-${i}`)?.classList.remove('dimmed'));
+  $('guess-spin-btn').style.display    = 'block';
+  $('guess-spin-btn').disabled         = true; // disabled until all guess
+  $('guess-playoff-btn').style.display = 'none';
+  $('guess-next-btn').style.display    = 'none';
+}
+
+// ══════════════════════════════════
+// LEDGERS
+// ══════════════════════════════════
+// Ledger 1: round progress (score / guessPoints) — resets each round
+// Ledger 2: session $ (sessionNet) — accumulates across rounds, only updates on round win
+
+function renderBothLedgers(roster, s, wrapId, roundRowsId, sessionRowsId) {
+  const players = rosterArr(roster);
+  const wrapper = $(wrapId);
+  if (!wrapper) return;
+  wrapper.style.display = 'grid';
+
+  // ── Ledger 1: Round progress ──
+  const isGuess    = s.variant === 'guess';
+  const isBestOf1  = !isGuess && s.winMode === 'rounds' && s.totalRounds === 1;
+  const roundEl    = $(roundRowsId);
+
+  // Hide round ledger when best-of-1 (only $ matters) or guess (pot wins shown in scoreboard)
+  const showRound = !isBestOf1;
+  roundEl?.closest('.ledger-panel')?.parentElement && (roundEl.closest('.ledger-panel').style.display = showRound ? 'block' : 'none');
+
+  if (showRound && roundEl) {
+    const sortKey  = isGuess ? 'guessPoints' : 'score';
+    const goal     = isGuess ? s.pointsGoal : s.totalRounds;
+    const sorted   = [...players].sort((a,b) => (b[sortKey]||0) - (a[sortKey]||0));
+    const maxVal   = Math.max(...players.map(p => p[sortKey]||0), 1);
+    roundEl.innerHTML = sorted.map(p => {
+      const val  = p[sortKey] || 0;
+      const pct  = Math.round((val / goal) * 100);
+      const leader = val === maxVal && val > 0;
+      return `
+        <div class="ledger-row">
+          <span class="ledger-name">${leader ? '🥇' : '·'} ${p.name}</span>
+          <div class="ledger-bar-wrap"><div class="ledger-bar blue" style="width:${pct}%"></div></div>
+          <span class="ledger-val" style="color:var(--blue-bright)">${val}/${goal}</span>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Ledger 2: Session $ ──
+  const sessionEl = $(sessionRowsId);
+  if (sessionEl) {
+    const anyMoney = players.some(p => (p.sessionNet||0) !== 0);
+    if (!anyMoney) {
+      sessionEl.innerHTML = '<div style="color:var(--silver);font-style:italic;font-size:0.82rem;">No payouts yet</div>';
+    } else {
+      const sorted = [...players].sort((a,b) => (b.sessionNet||0) - (a.sessionNet||0));
+      const maxAbs = Math.max(...players.map(p => Math.abs(p.sessionNet||0)), 1);
+      sessionEl.innerHTML = sorted.map(p => {
+        const net    = p.sessionNet || 0;
+        const sign   = net > 0 ? '+' : '';
+        const cls    = net > 0 ? 'pos' : net < 0 ? 'neg' : 'zero';
+        const barCls = net > 0 ? 'up' : 'down';
+        const barPct = Math.round((Math.abs(net) / maxAbs) * 100);
+        const arrow  = net > 0 ? '▲' : net < 0 ? '▼' : '–';
+        return `
+          <div class="ledger-row">
+            <span class="ledger-name">${arrow} ${p.name}</span>
+            <div class="ledger-bar-wrap"><div class="ledger-bar ${barCls}" style="width:${barPct}%"></div></div>
+            <span class="ledger-val ${cls}">${sign}$${net}</span>
+          </div>`;
+      }).join('');
+    }
+  }
+}
+
+// ══════════════════════════════════
+// WINNER
+// ══════════════════════════════════
+function showWinnerOverlay(room) {
+  const gs      = room.gameState;
+  const s       = room.settings;
+  const players = rosterArr(room.roster);
+  const winner  = players.find(p => p.name === gs.winnerName);
+  if (!winner) return;
+
+  $('ov-winner-name').textContent = `🎉 ${winner.name}`;
+  const net = winner.sessionNet || 0;
+  const netStr = `${net >= 0 ? '+' : ''}$${net}`;
+  if (s.variant === 'classic') {
+    const roundPot = players.length * s.stake;
+    $('ov-winner-detail').textContent = `Collected the $${roundPot} pot! (${netStr} net)`;
+  } else {
+    $('ov-winner-detail').textContent = `First to ${s.pointsGoal} pot wins! Net: ${netStr}`;
+  }
+  $('btn-play-again').style.display  = 'block';
+  $('winner-host-note').style.display = 'none';
+  $('ov-winner').classList.add('show');
+}
+
+window.hostPlayAgain = async function() {
+  $('ov-winner').classList.remove('show');
+  // Reset roster nets but keep names
+  const cleanRoster = {};
+  rosterArr(cachedRoom.roster).forEach(p => {
+    // Keep sessionNet — it tracks money across all games in this session
+    cleanRoster[escKey(p.name)] = { name: p.name, sessionNet: p.sessionNet||0, score:0, guessPoints:0 };
+  });
+  await update(roomRef, {
+    phase: 'lobby',
+    roster: cleanRoster,
+    gameState: null
+  });
+};
+
+window.doubleStake = async function() {
+  const current  = cachedRoom?.settings?.stake || 5;
+  const newStake = current * 2;
+  const extraPerPlayer = current; // each player pays the difference (current = newStake - current)
+
+  const updates = { 'settings/stake': newStake };
+
+  // In guess mode mid-spin: top up the current pot with the extra charge
+  if (cachedRoom?.phase === 'guess' && cachedRoom?.gameState) {
+    const players   = rosterArr(cachedRoom.roster);
+    const curPot    = cachedRoom.gameState.guessPot || 0;
+    const newPot    = curPot + players.length * extraPerPlayer;
+    updates['gameState/guessPot'] = newPot;
+    updates['gameState/statusMsg'] = `💥 Doubled! Pot is now $${newPot} — pick your letter!`;
+    players.forEach(p => {
+      updates[`roster/${escKey(p.name)}`] = { ...p, sessionNet: (p.sessionNet||0) - extraPerPlayer };
+    });
+    // Update cachedRoom immediately
+    if (cachedRoom.gameState) {
+      cachedRoom.gameState.guessPot = newPot;
+      cachedRoom.roster = cachedRoom.roster || {};
+      players.forEach(p => { cachedRoom.roster[escKey(p.name)].sessionNet = (p.sessionNet||0) - extraPerPlayer; });
+    }
+  }
+
+  await update(roomRef, updates);
+  if (cachedRoom?.settings) cachedRoom.settings.stake = newStake;
+
+  // Update input if visible
+  const el = $('stake-amount');
+  if (el) el.value = newStake;
+};
+
+window.confirmReset = async function() {
+  if (!confirm('Return to lobby?')) return;
+  {
+    await update(roomRef, { phase: 'lobby', gameState: null });
+  }
+};
+</script>
+</body>
+</html>

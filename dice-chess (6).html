@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dice Chess — Roll & Move Strategy Game</title>
+<meta name="description" content="Dice Chess: a strategy game where you roll 2 dice each turn and must move pieces whose values sum to exactly your roll. Capture the enemy King to win!">
+<meta name="keywords" content="dice chess, strategy game, board game, chess variant">
+<meta property="og:title" content="Dice Chess">
+<meta property="og:description" content="Roll the dice. Spend exactly. Capture the King. A fresh spin on chess strategy.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0f0e0c">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f0e0c; --panel:#1a1814; --border:#3a3020;
+    --gold:#c9a84c; --gold-light:#e8c96a; --gold-dim:#7a6030;
+    --cream:#f0e8d0; --light-sq:#d4b896; --dark-sq:#8b6040;
+    --highlight:rgba(255,220,50,0.45); --selectable:rgba(100,220,100,0.45);
+    --selected:rgba(255,180,0,0.55); --capture:rgba(220,60,60,0.5);
+    --p1:#4a8fff; --p2:#ff6b6b;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--cream);font-family:'Crimson Pro',serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;background-image:radial-gradient(ellipse at 50% 0%,#2a2010 0%,#0f0e0c 70%);}
+  h1{font-family:'Cinzel Decorative',cursive;font-size:clamp(1.4rem,4vw,2.2rem);color:var(--gold);text-shadow:0 0 30px rgba(201,168,76,0.4);letter-spacing:4px;margin-bottom:6px;text-align:center;}
+  .subtitle{color:var(--gold-dim);font-style:italic;font-size:1rem;margin-bottom:18px;letter-spacing:1px;}
+  .game-container{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center;width:100%;max-width:980px;}
+  .board-wrap{display:flex;flex-direction:column;align-items:center;}
+  .coord-row{display:flex;align-items:center;}
+  .coord-label{width:22px;text-align:center;font-size:.75rem;color:var(--gold-dim);}
+  #board{display:grid;grid-template-columns:repeat(8,1fr);border:3px solid var(--gold-dim);box-shadow:0 0 40px rgba(0,0,0,.8),0 0 80px rgba(201,168,76,.08);}
+  .sq{width:clamp(52px,8vw,68px);height:clamp(52px,8vw,68px);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background .12s;user-select:none;}
+  .sq.light{background:var(--light-sq);} .sq.dark{background:var(--dark-sq);}
+  .sq.selected{background:var(--selected)!important;}
+  .sq.movable{background:var(--highlight)!important;}
+  .sq.capture-target{background:var(--capture)!important;}
+  .sq.king-capture{background:rgba(255,50,50,0.6)!important;animation:pulseKing .7s ease-in-out infinite alternate;}
+  @keyframes pulseKing{from{box-shadow:inset 0 0 0 2px rgba(255,80,80,.6);}to{box-shadow:inset 0 0 0 4px rgba(255,120,120,1);}}
+  .sq.selectable{background:var(--selectable)!important;box-shadow:inset 0 0 0 3px rgba(80,220,80,1);}
+  .sq.forced-king{background:rgba(255,80,80,.3)!important;animation:pulseRed .9s ease-in-out infinite alternate;}
+  @keyframes pulseRed{from{box-shadow:inset 0 0 0 2px rgba(255,80,80,.5);}to{box-shadow:inset 0 0 0 3px rgba(255,120,120,1);}}
+  .sq.moved-this-turn::after{content:'';position:absolute;inset:0;background:rgba(80,160,255,.18);pointer-events:none;}
+  .sq.in-check{box-shadow:inset 0 0 0 3px rgba(255,50,50,0.9)!important;}
+  .sq .piece{display:block;font-size:clamp(34px,5.8vw,50px);line-height:1;position:relative;z-index:2;transition:transform .12s;pointer-events:none;}
+  .sq:hover .piece{transform:scale(1.1);}
+  .sq .piece.white-piece{color:#ffffff;text-shadow:0 0 3px #000,0 0 3px #000,1px 1px 2px #000,-1px -1px 2px #000,1px -1px 2px #000,-1px 1px 2px #000,0 3px 5px rgba(0,0,0,0.9);}
+  .sq .piece.black-piece{color:#111111;text-shadow:0 0 3px #fff,0 0 3px #fff,1px 1px 1px rgba(255,255,255,0.6),-1px -1px 1px rgba(255,255,255,0.6),0 2px 4px rgba(0,0,0,0.6);}
+  .side-panel{display:flex;flex-direction:column;gap:12px;min-width:200px;max-width:240px;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;}
+  .card h3{font-family:'Cinzel Decorative',cursive;font-size:.7rem;color:var(--gold-dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+  .player-card{border-radius:8px;padding:14px;border:2px solid var(--border);background:var(--panel);transition:border-color .3s,box-shadow .3s;}
+  .player-card.active{border-color:var(--gold);box-shadow:0 0 20px rgba(201,168,76,.2);}
+  .player-card .player-name{font-family:'Cinzel Decorative',cursive;font-size:.8rem;letter-spacing:2px;margin-bottom:4px;}
+  .player-card.p1 .player-name{color:var(--p1);} .player-card.p2 .player-name{color:var(--p2);}
+  .player-card .role{font-size:.85rem;color:var(--gold-dim);font-style:italic;margin-bottom:8px;}
+  .player-card .ai-badge{display:inline-block;background:#2a2040;border:1px solid #6060cc;color:#aaaaff;font-size:.7rem;padding:1px 6px;border-radius:4px;margin-left:6px;font-family:'Crimson Pro',serif;}
+  .captured-pieces{font-size:1.1rem;min-height:24px;line-height:1.4;word-break:break-all;}
+  .dice-area{text-align:center;}
+  .dice-display{display:flex;gap:10px;justify-content:center;margin:10px 0;}
+  .die{width:52px;height:52px;background:var(--cream);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:#1a1814;box-shadow:inset 0 -3px 0 rgba(0,0,0,.3),0 3px 8px rgba(0,0,0,.5);font-weight:700;}
+  .die.rolling{animation:rollDie .5s ease-out;}
+  @keyframes rollDie{0%{transform:rotate(0deg) scale(1);}25%{transform:rotate(-20deg) scale(1.1);}50%{transform:rotate(15deg) scale(.95);}75%{transform:rotate(-10deg) scale(1.05);}100%{transform:rotate(0deg) scale(1);}}
+  .dice-total{font-size:2rem;color:var(--gold);font-weight:600;font-family:'Cinzel Decorative',cursive;}
+  .dice-remaining{font-size:.95rem;color:var(--gold-light);margin-top:2px;}
+  .btn{background:linear-gradient(135deg,#2a2010,#3a3020);border:1px solid var(--gold-dim);color:var(--gold);font-family:'Cinzel Decorative',cursive;font-size:.65rem;letter-spacing:2px;padding:10px 16px;border-radius:6px;cursor:pointer;transition:all .2s;width:100%;text-transform:uppercase;}
+  .btn:hover:not(:disabled){background:linear-gradient(135deg,#3a3020,#4a4030);border-color:var(--gold);color:var(--gold-light);box-shadow:0 0 12px rgba(201,168,76,.25);}
+  .btn:disabled{opacity:.35;cursor:not-allowed;}
+  #status-msg{font-size:1rem;color:var(--cream);font-style:italic;text-align:center;min-height:1.4em;line-height:1.4;}
+  #status-msg.warning{color:#ffbb66;} #status-msg.danger{color:#ff7766;} #status-msg.info{color:#88ccff;}
+  .legend{font-size:.82rem;line-height:1.8;color:#b0a080;}
+  .legend span{color:var(--cream);font-weight:600;}
+  #move-log{max-height:130px;overflow-y:auto;font-size:.8rem;color:#a09070;line-height:1.7;}
+  #move-log::-webkit-scrollbar{width:4px;}
+  #move-log::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+  /* MODALS */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:var(--panel);border:2px solid var(--gold);border-radius:12px;padding:30px;text-align:center;max-width:420px;width:100%;box-shadow:0 0 60px rgba(201,168,76,.3);max-height:90vh;overflow-y:auto;}
+  .modal h2{font-family:'Cinzel Decorative',cursive;color:var(--gold);font-size:1.2rem;margin-bottom:12px;}
+  .modal p{color:var(--cream);margin-bottom:16px;font-size:1rem;line-height:1.6;}
+  .modal .btn{max-width:220px;margin:5px auto;display:block;}
+  .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;}
+  .setup-btn{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:12px 8px;cursor:pointer;transition:all .2s;color:var(--cream);font-family:'Crimson Pro',serif;font-size:1rem;}
+  .setup-btn:hover,.setup-btn.chosen{border-color:var(--gold);background:#2a2010;color:var(--gold-light);}
+  .setup-btn .emoji{font-size:1.6rem;display:block;margin-bottom:4px;}
+  .setup-section{margin-bottom:14px;}
+  .setup-section label{font-family:'Cinzel Decorative',cursive;font-size:.65rem;color:var(--gold-dim);letter-spacing:2px;display:block;margin-bottom:8px;}
+  .file-labels{display:flex;padding-left:22px;}
+  .file-labels span{width:clamp(52px,8vw,68px);text-align:center;font-size:.75rem;color:var(--gold-dim);}
+  .thinking{display:none;text-align:center;color:#aaaaff;font-style:italic;font-size:.9rem;margin-top:4px;}
+  .thinking.show{display:block;}
+  /* PROMOTION MODAL */
+  .promo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0;}
+  .promo-btn{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:12px 6px;cursor:pointer;transition:all .2s;font-size:2rem;text-align:center;}
+  .promo-btn:hover{border-color:var(--gold);background:#2a2010;}
+  .promo-btn small{display:block;font-size:.7rem;color:var(--gold-dim);margin-top:4px;font-family:'Crimson Pro',serif;}
+  /* HISTORY viewer */
+  #history-bar{display:none;justify-content:center;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;}
+  #history-bar.show{display:flex;}
+  #history-bar button{background:var(--panel);border:1px solid var(--border);color:var(--gold-dim);font-size:.75rem;padding:4px 10px;border-radius:4px;cursor:pointer;font-family:'Crimson Pro',serif;}
+  #history-bar button:hover{border-color:var(--gold);color:var(--gold);}
+  #history-bar .hist-label{font-size:.8rem;color:var(--gold-dim);font-style:italic;}
+  /* HOW TO PLAY */
+  .how-to{text-align:left;font-size:.9rem;line-height:1.7;color:var(--cream);}
+  .how-to h3{font-family:'Cinzel Decorative',cursive;color:var(--gold);font-size:.8rem;margin:12px 0 6px;}
+  .how-to .rule{margin-bottom:6px;padding-left:12px;border-left:2px solid var(--gold-dim);}
+
+</style>
+</head>
+<body>
+<h1>⚄ Dice Chess ⚄</h1>
+<p class="subtitle">Roll the dice. Spend exactly. Move wisely.</p>
+
+<div class="game-container">
+  <!-- LEFT PANEL -->
+  <div class="side-panel">
+    <div class="player-card p2" id="card-p2">
+      <div class="player-name" id="name-p2">Black</div>
+      <div class="role" id="role-p2">♟ Dark Forces</div>
+      <div class="captured-pieces" id="cap-p2"></div>
+    </div>
+    <div class="card dice-area">
+      <h3>🎲 Dice Roll</h3>
+      <div class="dice-display">
+        <div class="die" id="die1">–</div>
+        <div class="die" id="die2">–</div>
+      </div>
+      <div class="dice-total" id="dice-total">–</div>
+      <div class="dice-remaining" id="dice-remaining"></div>
+    </div>
+    <div class="card">
+      <div id="status-msg">Loading…</div>
+      <div class="thinking" id="thinking">🤖 Thinking…</div>
+    </div>
+    <button class="btn" id="btn-roll" onclick="rollDice()" disabled>🎲 Roll Dice</button>
+    <button class="btn" id="btn-undo" onclick="undoLastPiece()" disabled style="border-color:#556688;color:#99aacc;">↩ Undo Last Piece</button>
+    <button class="btn" id="btn-history" onclick="toggleHistory()" style="border-color:#886644;color:#ccaa88;">📜 View History</button>
+    <button class="btn" id="btn-new-game" onclick="openSetup()" style="border-color:#556655;color:#99bb99;">New Game</button>
+    <button class="btn" onclick="openHowTo()" style="border-color:#446688;color:#88aacc;">❓ How to Play</button>
+    <div class="player-card p1" id="card-p1">
+      <div class="player-name" id="name-p1">White</div>
+      <div class="role" id="role-p1">♙ Light Forces</div>
+      <div class="captured-pieces" id="cap-p1"></div>
+    </div>
+  </div>
+
+  <!-- BOARD -->
+  <div class="board-wrap">
+    <div class="file-labels">
+      <span>a</span><span>b</span><span>c</span><span>d</span>
+      <span>e</span><span>f</span><span>g</span><span>h</span>
+    </div>
+    <div class="coord-row">
+      <div style="display:flex;flex-direction:column;">
+        <div class="coord-label">8</div><div class="coord-label">7</div>
+        <div class="coord-label">6</div><div class="coord-label">5</div>
+        <div class="coord-label">4</div><div class="coord-label">3</div>
+        <div class="coord-label">2</div><div class="coord-label">1</div>
+      </div>
+      <div id="board"></div>
+    </div>
+    <!-- HISTORY BAR below board -->
+    <div id="history-bar">
+      <button onclick="histFirst()">⏮</button>
+      <button onclick="histPrev()">◀</button>
+      <span class="hist-label" id="hist-label">Move 0</span>
+      <button onclick="histNext()">▶</button>
+      <button onclick="histLast()">⏭</button>
+      <button onclick="toggleHistory()" style="color:#ff9999;border-color:#993333;">✕</button>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="side-panel">
+    <div class="card">
+      <h3>Piece Values</h3>
+      <div class="legend">
+        ♙♟ Pawn = <span>1pt</span><br>
+        ♘♞ Knight = <span>3pt</span><br>
+        ♗♝ Bishop = <span>3pt</span><br>
+        ♖♜ Rook = <span>5pt</span><br>
+        Castle = <span>5pt</span><br>
+        ♕♛ Queen = <span>9pt</span><br>
+        ♔♚ King = <span>full turn</span><br>
+        Captures = <span>free!</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Rules</h3>
+      <div class="legend" style="font-size:.78rem;line-height:1.7;">
+        Spend <span>exactly</span> the dice total.<br><br>
+        <span>King capture</span> only if it uses your last point.<br><br>
+        Can't make exact total? <span>Must move King.</span><br><br>
+        King also blocked? <span>Stalemate — you lose!</span><br><br>
+        King choice only <span>before</span> other pieces move.<br><br>
+        Check is <span>not enforced</span> — leave King in danger at your own risk!
+      </div>
+    </div>
+    <div class="card">
+      <h3>Move Log</h3>
+      <div id="move-log"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP MODAL -->
+<div class="modal-overlay show" id="setup-modal">
+  <div class="modal">
+    <h2>⚄ Dice Chess</h2>
+    <div class="setup-section">
+      <label>Game Mode</label>
+      <div class="setup-grid">
+        <button class="setup-btn chosen" id="mode-2p" onclick="selectMode('2p')"><span class="emoji">👥</span>2 Players<br><small style="color:#888">Local</small></button>
+        <button class="setup-btn" id="mode-ai" onclick="selectMode('ai')"><span class="emoji">🤖</span>vs Computer<br><small style="color:#888">AI opponent</small></button>
+      </div>
+    </div>
+    <div class="setup-section" id="section-color" style="display:none;">
+      <label>You Play As</label>
+      <div class="setup-grid">
+        <button class="setup-btn chosen" id="col-white" onclick="selectColor('w')"><span class="emoji">♙</span>White<br><small style="color:#888">You move first</small></button>
+        <button class="setup-btn" id="col-black" onclick="selectColor('b')"><span class="emoji">♟</span>Black<br><small style="color:#888">Computer first</small></button>
+      </div>
+    </div>
+    <div class="setup-section" id="section-diff" style="display:none;">
+      <label>Difficulty</label>
+      <div class="setup-grid">
+        <button class="setup-btn chosen" id="diff-medium" onclick="selectDiff('medium')"><span class="emoji">⚔️</span>Medium<br><small style="color:#888">Tactical</small></button>
+        <button class="setup-btn" id="diff-hard" onclick="selectDiff('hard')"><span class="emoji">🧠</span>Hard<br><small style="color:#888">Strategic</small></button>
+      </div>
+    </div>
+    <button class="btn" onclick="startGame()" style="max-width:200px;margin:0 auto 8px;">▶ Start Game</button>
+    <button class="btn" onclick="openHowTo()" style="max-width:200px;margin:0 auto;border-color:#446688;color:#88aacc;">❓ How to Play</button>
+  </div>
+</div>
+
+<!-- HOW TO PLAY MODAL -->
+<div class="modal-overlay" id="howto-modal">
+  <div class="modal" style="max-width:500px;">
+    <h2>How to Play</h2>
+    <div class="how-to">
+      <h3>🎲 The Basics</h3>
+      <div class="rule">Each turn you roll 2 dice. You must move pieces whose <strong>point values add up to exactly the dice total</strong>.</div>
+      <div class="rule">Piece values: Pawn=1, Knight=3, Bishop=3, Rook=5, Castle=5, Queen=9. King uses your entire turn.</div>
+
+      <h3>♟ Moving Pieces</h3>
+      <div class="rule">You can move multiple pieces per turn as long as their values sum exactly to your roll. Example: roll 8 = Rook(5) + Knight(3).</div>
+      <div class="rule"><strong>Captures are free</strong> — taking an enemy piece costs no extra points.</div>
+      <div class="rule">You <strong>cannot move the same piece twice</strong> in one turn.</div>
+
+      <h3>♔ The King</h3>
+      <div class="rule">The King is always a valid choice, but <strong>only before you move any other piece</strong>. Moving the King ends your turn.</div>
+      <div class="rule"><strong>Check is not enforced</strong> — you can leave your King in danger or move into check. But if your opponent rolls the right amount to capture it... you lose!</div>
+      <div class="rule">If you can't make the exact total with non-King pieces, you <strong>must</strong> move the King. If the King has no moves either — <strong>Stalemate</strong>, you lose!</div>
+
+      <h3>👑 Winning</h3>
+      <div class="rule">Capture the enemy King to win. The King can only be captured if it uses your <strong>last point</strong> that turn.</div>
+
+      <h3>♟ Pawn Promotion</h3>
+      <div class="rule">When a pawn reaches the last rank, you choose what to promote it to: Queen, Rook, Bishop, or Knight.</div>
+
+      <h3>🏰 Castling</h3>
+      <div class="rule">Castling costs 5 points like a Rook move. You can still spend remaining points after castling.</div>
+
+      <h3>📜 History</h3>
+      <div class="rule">Use the <strong>View History</strong> button any time to step back through past moves. Use ▶ / ◀ to navigate.</div>
+    </div>
+    <a href="dice-chess-demo.html" target="_blank" style="display:block;max-width:220px;margin:10px auto 0;">
+      <button class="btn" style="border-color:#8866cc;color:#ccaaff;width:100%;">🎬 Watch Animated Demo</button>
+    </a>
+    <button class="btn" onclick="closeHowTo()" style="max-width:180px;margin:8px auto 0;">Got it!</button>
+  </div>
+</div>
+
+<!-- PROMOTION MODAL -->
+<div class="modal-overlay" id="promo-modal">
+  <div class="modal" style="max-width:300px;">
+    <h2>Promote Pawn</h2>
+    <p>Choose a piece to promote to:</p>
+    <div class="promo-grid" id="promo-grid"></div>
+  </div>
+</div>
+
+<!-- GAME OVER MODAL -->
+<div class="modal-overlay" id="gameover-modal">
+  <div class="modal">
+    <h2 id="go-title">Game Over</h2>
+    <p id="go-msg"></p>
+    <button class="btn" onclick="startReplay()" style="border-color:#8866cc;color:#ccaaff;margin-bottom:6px;">▶ Replay Game</button>
+    <button class="btn" onclick="openSetup()">New Game</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════════
+const PV={P:1,N:3,B:3,R:5,Q:9,K:0};
+const WG={P:'♙',N:'♘',B:'♗',R:'♖',Q:'♕',K:'♔'};
+const BG={P:'♟',N:'♞',B:'♝',R:'♜',Q:'♛',K:'♚'};
+const FILES='abcdefgh';
+const SCORE={P:100,N:320,B:330,R:500,Q:900,K:20000};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SETUP STATE
+// ═══════════════════════════════════════════════════════════════════════════════
+let setupMode='2p', setupColor='w', setupDiff='medium';
+
+function selectMode(m){
+  setupMode=m;
+  document.getElementById('mode-2p').classList.toggle('chosen',m==='2p');
+  document.getElementById('mode-ai').classList.toggle('chosen',m==='ai');
+  document.getElementById('section-color').style.display=m==='ai'?'':'none';
+  document.getElementById('section-diff').style.display=m==='ai'?'':'none';
+  if(m==='2p') setupColor='w';
+}
+function selectColor(c){
+  setupColor=c;
+  document.getElementById('col-white').classList.toggle('chosen',c==='w');
+  document.getElementById('col-black').classList.toggle('chosen',c==='b');
+}
+function selectDiff(d){
+  setupDiff=d;
+  document.getElementById('diff-medium').classList.toggle('chosen',d==='medium');
+  document.getElementById('diff-hard').classList.toggle('chosen',d==='hard');
+}
+function openSetup(){
+  document.getElementById('gameover-modal').classList.remove('show');
+  document.getElementById('setup-modal').classList.add('show');
+  exitHistory();
+}
+function openHowTo(){
+  document.getElementById('howto-modal').classList.add('show');
+}
+function closeHowTo(){
+  document.getElementById('howto-modal').classList.remove('show');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════════════════════════
+let board=[], currentPlayer='w';
+let diceTotal=0, pointsRemaining=0, hasRolled=false;
+let selectedSq=null, movedSquares=new Set(), turnHistory=[];
+let captured={w:[],b:[]}, enPassantTarget=null;
+let castlingRights={wK:true,wQ:true,bK:true,bQ:true};
+let gameOver=false, forcedKing=false, turnEnding=false;
+let gameMode='2p', humanColor='w', aiColor='b', aiDiff='medium';
+// Game history for board viewer
+let gameHistory=[]; // [{board, desc, player}]
+let historyIndex=-1; // -1 = live game
+let viewingHistory=false;
+// Replay
+let replayIndex=0, replayTimer=null, autoPlaying=false;
+// Pending promotion
+let pendingPromo=null; // {fr,fc,tr,tc}
+
+function startGame(){
+  document.getElementById('setup-modal').classList.remove('show');
+  gameMode=setupMode; humanColor=setupColor;
+  aiColor=humanColor==='w'?'b':'w'; aiDiff=setupDiff;
+  if(gameMode==='ai'){
+    const badge=`<span class="ai-badge">${aiDiff}</span>`;
+    if(aiColor==='b'){
+      document.getElementById('name-p2').innerHTML='Black '+badge;
+      document.getElementById('role-p2').textContent='♟ Dark Forces';
+      document.getElementById('name-p1').textContent='White';
+      document.getElementById('role-p1').textContent='♙ You';
+    } else {
+      document.getElementById('name-p1').innerHTML='White '+badge;
+      document.getElementById('role-p1').textContent='♙ Light Forces';
+      document.getElementById('name-p2').textContent='Black';
+      document.getElementById('role-p2').textContent='♟ You';
+    }
+  } else {
+    document.getElementById('name-p1').textContent='White';
+    document.getElementById('role-p1').textContent='♙ Light Forces';
+    document.getElementById('name-p2').textContent='Black';
+    document.getElementById('role-p2').textContent='♟ Dark Forces';
+  }
+  newGame();
+}
+
+function newGame(){
+  gameOver=false; currentPlayer='w'; turnEnding=false; forcedKing=false;
+  diceTotal=0; pointsRemaining=0; hasRolled=false;
+  selectedSq=null; movedSquares.clear(); turnHistory=[];
+  captured={w:[],b:[]}; enPassantTarget=null; pendingPromo=null;
+  castlingRights={wK:true,wQ:true,bK:true,bQ:true};
+  gameHistory=[]; historyIndex=-1; viewingHistory=false;
+  document.getElementById('btn-undo').disabled=true;
+  document.getElementById('dice-total').textContent='–';
+  document.getElementById('die1').textContent='–'; document.getElementById('die2').textContent='–';
+  document.getElementById('dice-remaining').textContent='';
+  document.getElementById('move-log').innerHTML='';
+  document.getElementById('promo-modal').classList.remove('show');
+  exitHistory();
+  initBoard(); renderBoard();
+  if(gameMode==='ai'&&aiColor==='w'){
+    setStatus('You play Black. White (Computer) goes first…','info');
+    document.getElementById('btn-roll').disabled=true;
+    setTimeout(aiTakeTurn,800);
+  } else {
+    setStatus("White's turn — Roll the dice!",'');
+    document.getElementById('btn-roll').disabled=false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BOARD INIT
+// ═══════════════════════════════════════════════════════════════════════════════
+function initBoard(){
+  board=Array.from({length:8},()=>Array(8).fill(null));
+  const back=['R','N','B','Q','K','B','N','R'];
+  for(let c=0;c<8;c++){
+    board[0][c]={color:'b',type:back[c]};
+    board[1][c]={color:'b',type:'P'};
+    board[6][c]={color:'w',type:'P'};
+    board[7][c]={color:'w',type:back[c]};
+  }
+}
+function cloneBoard(b){return b.map(r=>r.map(p=>p?{...p}:null));}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUBSET-SUM
+// ═══════════════════════════════════════════════════════════════════════════════
+function canMakeExact(target,vals){
+  if(target===0)return true;
+  const reach=new Set([0]);
+  for(const v of vals){
+    const add=[];
+    for(const s of reach){const ns=s+v;if(ns===target)return true;if(ns<target)add.push(ns);}
+    for(const x of add)reach.add(x);
+  }
+  return false;
+}
+
+// All unmoved non-king piece values (loose — for selectable check)
+function availVals(b,color,moved,excludeRC=null){
+  const vals=[];
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    if(excludeRC&&excludeRC.r===r&&excludeRC.c===c)continue;
+    const p=b[r][c];
+    if(!p||p.color!==color||p.type==='K')continue;
+    if(moved.has(`${r},${c}`))continue;
+    vals.push(PV[p.type]);
+  }
+  return vals;
+}
+
+// Only pieces with legal moves (strict — for stalemate detection)
+function strictAvailVals(b,color,moved,ep,cr){
+  const vals=[];
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=b[r][c];
+    if(!p||p.color!==color||p.type==='K')continue;
+    if(moved.has(`${r},${c}`))continue;
+    if(getRawMoves(b,r,c,ep,cr).length>0)vals.push(PV[p.type]);
+  }
+  return vals;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MOVE GENERATION — no check filtering (check is not enforced in Dice Chess)
+// ═══════════════════════════════════════════════════════════════════════════════
+function getRawMoves(b,r,c,ep,cr){
+  const p=b[r][c]; if(!p)return[];
+  const moves=[], color=p.color, opp=color==='w'?'b':'w', dir=color==='w'?-1:1;
+
+  const tryAdd=(tr,tc,opts={})=>{
+    if(tr<0||tr>7||tc<0||tc>7)return;
+    if(b[tr][tc]?.color===color)return;
+    moves.push({r:tr,c:tc,...opts});
+  };
+  const slide=(dr,dc)=>{
+    let tr=r+dr,tc=c+dc;
+    while(tr>=0&&tr<8&&tc>=0&&tc<8){
+      const t=b[tr][tc];
+      if(t){if(t.color===opp)moves.push({r:tr,c:tc});break;}
+      moves.push({r:tr,c:tc}); tr+=dr; tc+=dc;
+    }
+  };
+
+  switch(p.type){
+    case 'P':{
+      // Forward — only to empty squares
+      if(r+dir>=0&&r+dir<=7&&!b[r+dir][c]){
+        moves.push({r:r+dir,c});
+        const sr=color==='w'?6:1;
+        if(r===sr&&!b[r+2*dir][c])moves.push({r:r+2*dir,c});
+      }
+      // Diagonal captures only
+      for(const dc of[-1,1]){
+        const tr=r+dir,tc=c+dc;
+        if(tc<0||tc>7||tr<0||tr>7)continue;
+        const t=b[tr][tc];
+        if(t&&t.color===opp){moves.push({r:tr,c:tc});}
+        else if(!t&&ep&&ep.r===tr&&ep.c===tc&&ep.byColor!==color)moves.push({r:tr,c:tc,ep:true});
+      }
+      break;
+    }
+    case 'N': for(const[dr,dc]of[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]])tryAdd(r+dr,c+dc); break;
+    case 'B': for(const[dr,dc]of[[-1,-1],[-1,1],[1,-1],[1,1]])slide(dr,dc); break;
+    case 'R': for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]])slide(dr,dc); break;
+    case 'Q': for(const[dr,dc]of[[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]])slide(dr,dc); break;
+    case 'K':{
+      for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]])tryAdd(r+dr,c+dc);
+      // Castling — costs 5pts (treated as rook move)
+      const row=color==='w'?7:0;
+      if(r===row&&c===4){
+        const ks=color==='w'?'wK':'bK', qs=color==='w'?'wQ':'bQ';
+        if(cr[ks]&&!b[row][5]&&!b[row][6]&&b[row][7]?.type==='R')
+          moves.push({r:row,c:6,castle:'K'});
+        if(cr[qs]&&!b[row][3]&&!b[row][2]&&!b[row][1]&&b[row][0]?.type==='R')
+          moves.push({r:row,c:2,castle:'Q'});
+      }
+      break;
+    }
+  }
+  return moves;
+}
+
+// getLegalMoves = getRawMoves (no check enforcement per rules)
+function getLegalMoves(r,c){return getRawMoves(board,r,c,enPassantTarget,castlingRights);}
+
+// For AI and selectable: uses board param
+function getLegalMovesB(b,r,c,ep,cr){return getRawMoves(b,r,c,ep,cr);}
+
+// Attack detection (for king-in-check display only, not enforcement)
+function sqAtt(r,c,by,b){
+  for(let fr=0;fr<8;fr++)for(let fc=0;fc<8;fc++){
+    const p=b[fr][fc]; if(!p||p.color!==by)continue;
+    if(attacks(fr,fc,r,c,b))return true;
+  }
+  return false;
+}
+function attacks(fr,fc,tr,tc,b){
+  const p=b[fr][fc], d=p.color==='w'?-1:1;
+  const dr=tr-fr, dc=tc-fc;
+  switch(p.type){
+    case 'P': return Math.abs(dc)===1&&dr===d;
+    case 'N': return(Math.abs(dr)===2&&Math.abs(dc)===1)||(Math.abs(dr)===1&&Math.abs(dc)===2);
+    case 'B': return slideAtt(fr,fc,tr,tc,b,true,false);
+    case 'R': return slideAtt(fr,fc,tr,tc,b,false,true);
+    case 'Q': return slideAtt(fr,fc,tr,tc,b,true,true);
+    case 'K': return Math.abs(dr)<=1&&Math.abs(dc)<=1;
+  }
+  return false;
+}
+function slideAtt(fr,fc,tr,tc,b,diag,straight){
+  const dr=tr-fr, dc=tc-fc;
+  if(diag&&Math.abs(dr)===Math.abs(dc)&&dr!==0){
+    const sr=Math.sign(dr),sc=Math.sign(dc); let r=fr+sr,c=fc+sc;
+    while(r!==tr||c!==tc){if(b[r][c])return false;r+=sr;c+=sc;} return true;
+  }
+  if(straight&&(dr===0||dc===0)&&(dr!==0||dc!==0)){
+    const sr=Math.sign(dr),sc=Math.sign(dc); let r=fr+sr,c=fc+sc;
+    while(r!==tr||c!==tc){if(b[r][c])return false;r+=sr;c+=sc;} return true;
+  }
+  return false;
+}
+
+function simMove(b,fr,fc,tr,tc,castle,ep){
+  const s=cloneBoard(b); const p=s[fr][fc];
+  if(ep)s[fr][tc]=null;
+  if(castle){const row=fr;if(castle==='K'){s[row][5]=s[row][7];s[row][7]=null;}else{s[row][3]=s[row][0];s[row][0]=null;}}
+  s[tr][tc]=p; s[fr][fc]=null; return s;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SELECTABLE SQUARES
+// ═══════════════════════════════════════════════════════════════════════════════
+function getSelectableSquares(){
+  const set=new Set();
+  if(!hasRolled||gameOver||viewingHistory)return set;
+
+  if(forcedKing){
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+      const p=board[r][c];
+      if(p?.color===currentPlayer&&p.type==='K'&&getLegalMoves(r,c).length>0)set.add(`${r},${c}`);
+    }
+    return set;
+  }
+
+  // King option only before any pieces move
+  if(movedSquares.size===0){
+    for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+      const p=board[r][c];
+      if(p?.color===currentPlayer&&p.type==='K'&&getLegalMoves(r,c).length>0)set.add(`${r},${c}`);
+    }
+  }
+
+  // Non-king: selectable if value fits AND remaining total can be made after spending it
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=board[r][c];
+    if(!p||p.color!==currentPlayer||p.type==='K')continue;
+    if(movedSquares.has(`${r},${c}`))continue;
+    const val=PV[p.type];
+    if(val>pointsRemaining)continue;
+    const moves=getLegalMoves(r,c).filter(m=>{
+      const t=board[m.r][m.c];
+      if(t?.type==='K')return val===pointsRemaining;
+      return true;
+    });
+    if(moves.length===0)continue;
+    const leftover=pointsRemaining-val;
+    if(leftover===0){set.add(`${r},${c}`);}
+    else{
+      const others=availVals(board,currentPlayer,movedSquares,{r,c});
+      if(canMakeExact(leftover,others))set.add(`${r},${c}`);
+    }
+  }
+  return set;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════════════════
+function renderBoard(){
+  if(viewingHistory)return; // history viewer handles its own render
+  const el=document.getElementById('board'); el.innerHTML='';
+  const sel=getSelectableSquares();
+  // Find kings in check (for display only)
+  const wKingCheck=isKingInCheck('w');
+  const bKingCheck=isKingInCheck('b');
+
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const sq=document.createElement('div');
+      sq.className='sq '+((r+c)%2===0?'light':'dark');
+      const key=`${r},${c}`;
+      const piece=board[r][c];
+
+      if(selectedSq?.r===r&&selectedSq?.c===c)sq.classList.add('selected');
+      if(movedSquares.has(key))sq.classList.add('moved-this-turn');
+
+      // Show king in check
+      if(piece?.type==='K'){
+        if((piece.color==='w'&&wKingCheck)||(piece.color==='b'&&bKingCheck))
+          sq.classList.add('in-check');
+      }
+
+      if(piece){
+        const span=document.createElement('span');
+        span.className='piece '+(piece.color==='w'?'white-piece':'black-piece');
+        span.textContent=piece.color==='w'?WG[piece.type]:BG[piece.type];
+        sq.appendChild(span);
+      }
+
+      if(selectedSq){
+        const moves=getLegalMoves(selectedSq.r,selectedSq.c).filter(m=>{
+          const t=board[m.r][m.c];
+          if(t?.type==='K')return PV[board[selectedSq.r][selectedSq.c].type]===pointsRemaining;
+          return true;
+        });
+        if(moves.some(m=>m.r===r&&m.c===c)){
+          const t=board[r][c];
+          sq.classList.add(t?.type==='K'?'king-capture':t&&t.color!==currentPlayer?'capture-target':'movable');
+        }
+        if(!(selectedSq.r===r&&selectedSq.c===c)&&sel.has(key))
+          sq.classList.add(forcedKing?'forced-king':'selectable');
+      } else {
+        if(sel.has(key))sq.classList.add(forcedKing?'forced-king':'selectable');
+      }
+
+      const isHumanTurn=gameMode==='2p'||(currentPlayer===humanColor);
+      if(isHumanTurn&&!viewingHistory)sq.addEventListener('click',()=>onSquareClick(r,c));
+      else sq.style.cursor='default';
+      el.appendChild(sq);
+    }
+  }
+
+  document.getElementById('card-p1').classList.toggle('active',currentPlayer==='w'&&!gameOver);
+  document.getElementById('card-p2').classList.toggle('active',currentPlayer==='b'&&!gameOver);
+  document.getElementById('cap-p1').textContent=captured.w.map(t=>BG[t]).join('');
+  document.getElementById('cap-p2').textContent=captured.b.map(t=>WG[t]).join('');
+}
+
+function isKingInCheck(color){
+  const opp=color==='w'?'b':'w';
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    if(board[r][c]?.color===color&&board[r][c]?.type==='K')
+      return sqAtt(r,c,opp,board);
+  }
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DICE
+// ═══════════════════════════════════════════════════════════════════════════════
+function rollDice(){
+  if(hasRolled||gameOver||viewingHistory)return;
+  const d1=Math.floor(Math.random()*6)+1, d2=Math.floor(Math.random()*6)+1;
+  const e1=document.getElementById('die1'), e2=document.getElementById('die2');
+  e1.classList.add('rolling'); e2.classList.add('rolling');
+  let n=0;
+  const t=setInterval(()=>{
+    e1.textContent=Math.floor(Math.random()*6)+1;
+    e2.textContent=Math.floor(Math.random()*6)+1;
+    if(++n>8){
+      clearInterval(t); e1.textContent=d1; e2.textContent=d2;
+      e1.classList.remove('rolling'); e2.classList.remove('rolling');
+      finalizeDice(d1,d2);
+    }
+  },60);
+}
+
+function finalizeDice(d1,d2){
+  diceTotal=d1+d2; pointsRemaining=diceTotal;
+  hasRolled=true; movedSquares.clear(); turnHistory=[];
+  selectedSq=null; forcedKing=false; turnEnding=false;
+  document.getElementById('dice-total').textContent=diceTotal;
+  document.getElementById('btn-roll').disabled=true;
+  document.getElementById('btn-undo').disabled=true;
+  updateDiceRemaining();
+  const name=currentPlayer==='w'?'White':'Black';
+  // Warn if king is in check (informational only — not enforced)
+  const inCheck=isKingInCheck(currentPlayer);
+  const checkNote=inCheck?` ⚠️ Your King is in check — but you can choose to ignore it!`:'';
+  evaluateTurnState(`${name} rolled ${d1}+${d2}=${diceTotal}.${checkNote}`);
+  renderBoard();
+}
+
+function evaluateTurnState(prefix=''){
+  const name=currentPlayer==='w'?'White':'Black';
+  if(pointsRemaining===0){setStatus('Turn complete!','');turnEnding=true;setTimeout(endTurn,900);return;}
+
+  const strictVals=strictAvailVals(board,currentPlayer,movedSquares,enPassantTarget,castlingRights);
+  const exactPossible=canMakeExact(pointsRemaining,strictVals);
+
+  const kingPos=findKing(board,currentPlayer);
+  const kingHasMoves=kingPos!==null&&movedSquares.size===0&&getLegalMoves(kingPos.r,kingPos.c).length>0;
+
+  if(exactPossible){
+    forcedKing=false;
+    setStatus(movedSquares.size===0
+      ?`${prefix} Select pieces (must total exactly ${diceTotal}).`
+      :`${prefix} ${pointsRemaining}pt left — keep moving!`,'');
+  } else if(movedSquares.size>0){
+    forcedKing=false;
+    setStatus(`Can't reach exactly ${pointsRemaining}pt — undo last piece and try differently!`,'warning');
+    document.getElementById('btn-undo').disabled=false;
+  } else if(kingHasMoves){
+    forcedKing=true;
+    setStatus(`${prefix} Can't make ${diceTotal} exactly — must move the King!`,'danger');
+  } else {
+    setStatus(`Stalemate! ${name} can't make ${diceTotal} and King has no moves — ${name} loses!`,'danger');
+    logMove(`${name}: STALEMATE (rolled ${diceTotal})`);
+    setTimeout(()=>showGameOver('Stalemate!',`${name} rolled ${diceTotal}, couldn't make the exact total and the King has no valid moves. ${name} loses!`),1500);
+    return;
+  }
+  document.getElementById('btn-undo').disabled=turnHistory.length===0;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLICKS
+// ═══════════════════════════════════════════════════════════════════════════════
+function onSquareClick(r,c){
+  if(!hasRolled||gameOver||viewingHistory)return;
+  if(gameMode==='ai'&&currentPlayer===aiColor)return;
+  const p=board[r][c];
+
+  if(selectedSq){
+    const moves=getLegalMoves(selectedSq.r,selectedSq.c).filter(m=>{
+      const t=board[m.r][m.c];
+      if(t?.type==='K')return PV[board[selectedSq.r][selectedSq.c].type]===pointsRemaining;
+      return true;
+    });
+    const move=moves.find(m=>m.r===r&&m.c===c);
+    if(move){executeMove(selectedSq.r,selectedSq.c,r,c,move.castle,move.ep);selectedSq=null;return;}
+    if(p?.color===currentPlayer&&getSelectableSquares().has(`${r},${c}`)){selectedSq={r,c};renderBoard();return;}
+    selectedSq=null; renderBoard(); return;
+  }
+
+  if(p?.color===currentPlayer){
+    const sel=getSelectableSquares();
+    if(sel.has(`${r},${c}`)){selectedSq={r,c};}
+    else if(movedSquares.has(`${r},${c}`)){setStatus('That piece already moved this turn.','warning');}
+    else if(p.type==='K'&&movedSquares.size>0){setStatus('King must be your ONLY move — undo first.','warning');}
+    else{setStatus(`Can't use this piece — doesn't fit ${pointsRemaining}pt remaining exactly.`,'warning');}
+  }
+  renderBoard();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXECUTE MOVE
+// ═══════════════════════════════════════════════════════════════════════════════
+function executeMove(fr,fc,tr,tc,castle,ep){
+  // Save for undo
+  turnHistory.push({
+    board:cloneBoard(board),
+    ep:enPassantTarget?{...enPassantTarget}:null,
+    cr:{...castlingRights},
+    cap:{w:[...captured.w],b:[...captured.b]},
+    pts:pointsRemaining,
+    moved:new Set(movedSquares),
+  });
+
+  const p=board[fr][fc], color=p.color, target=board[tr][tc];
+
+  // Castling (5pt — treated like a rook move, NOT a full-turn king move)
+  if(p.type==='K'&&castle){
+    const row=fr;
+    if(castle==='K'){board[row][5]=board[row][7];board[row][7]=null;}
+    else{board[row][3]=board[row][0];board[row][0]=null;}
+    board[tr][tc]=p; board[fr][fc]=null;
+    pointsRemaining-=5;
+    castlingRights[color==='w'?'wK':'bK']=false;
+    castlingRights[color==='w'?'wQ':'bQ']=false;
+    movedSquares.add(`${tr},${tc}`); enPassantTarget=null;
+    logMove(`${color==='w'?'White':'Black'}: Castle ${castle==='K'?'kingside':'queenside'} (5pt)`);
+    saveHistory(`Castle ${castle==='K'?'kingside':'queenside'}`);
+    // 5pt move — continue turn if points remain
+    document.getElementById('btn-undo').disabled=false;
+    updateDiceRemaining(); evaluateTurnState(); renderBoard();
+    if(gameMode==='ai'&&currentPlayer===aiColor&&!gameOver&&hasRolled&&!turnEnding&&pointsRemaining>0)
+      setTimeout(aiContinueTurn,600);
+    return;
+  }
+
+  // En passant
+  if(ep){captured[color].push('P');board[fr][tc]=null;}
+
+  // Capture (free)
+  if(target){
+    captured[color].push(target.type);
+    if(target.type==='K'){
+      board[tr][tc]=p; board[fr][fc]=null;
+      renderBoard();
+      showGameOver(`${color==='w'?'White':'Black'} Wins! 👑`,`The enemy King has been captured!`);
+      return;
+    }
+  }
+
+  board[tr][tc]=p; board[fr][fc]=null;
+
+  // Pawn promotion — show choice modal
+  if(p.type==='P'&&(tr===0||tr===7)){
+    pendingPromo={fr,fc:tr,tr,tc,color};
+    showPromoModal(color,tr,tc);
+    return; // pause until player chooses
+  }
+
+  enPassantTarget=null;
+  if(p.type==='P'&&Math.abs(tr-fr)===2)enPassantTarget={r:(fr+tr)/2,c:fc,byColor:color};
+  updateCastlingRights(p,color,fr,fc);
+
+  if(p.type==='K'){
+    movedSquares.add(`${tr},${tc}`);
+    logMove(`${color==='w'?'White':'Black'}: King ${FILES[fc]}${8-fr}→${FILES[tc]}${8-tr} (full turn)`);
+    saveHistory(`King ${FILES[fc]}${8-fr}→${FILES[tc]}${8-tr}`);
+    finishKingMove(); return;
+  }
+
+  const cost=PV[p.type]; pointsRemaining-=cost;
+  movedSquares.add(`${tr},${tc}`);
+  const capNote=target?` x${target.type}`:ep?' ep':'';
+  logMove(`${color==='w'?'White':'Black'}: ${p.type} ${FILES[fc]}${8-fr}→${FILES[tc]}${8-tr}${capNote} (${cost}pt)`);
+  saveHistory(`${p.type} ${FILES[fc]}${8-fr}→${FILES[tc]}${8-tr}${capNote}`);
+
+  document.getElementById('btn-undo').disabled=false;
+  updateDiceRemaining(); evaluateTurnState(); renderBoard();
+  if(gameMode==='ai'&&currentPlayer===aiColor&&!gameOver&&hasRolled&&!turnEnding&&pointsRemaining>0)
+    setTimeout(aiContinueTurn,600);
+}
+
+function updateCastlingRights(p,color,fr,fc){
+  if(p.type==='K'){castlingRights[color==='w'?'wK':'bK']=false;castlingRights[color==='w'?'wQ':'bQ']=false;}
+  if(p.type==='R'){
+    if(fr===7&&fc===0)castlingRights.wQ=false;
+    if(fr===7&&fc===7)castlingRights.wK=false;
+    if(fr===0&&fc===0)castlingRights.bQ=false;
+    if(fr===0&&fc===7)castlingRights.bK=false;
+  }
+}
+
+function finishKingMove(){
+  updateDiceRemaining(); setStatus('King moved — turn ends.','');
+  document.getElementById('btn-undo').disabled=true;
+  renderBoard(); setTimeout(endTurn,900);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAWN PROMOTION
+// ═══════════════════════════════════════════════════════════════════════════════
+function showPromoModal(color,tr,tc){
+  const grid=document.getElementById('promo-grid');
+  grid.innerHTML='';
+  const options=['Q','R','B','N'];
+  const names={'Q':'Queen','R':'Rook','B':'Bishop','N':'Knight'};
+  for(const type of options){
+    const btn=document.createElement('button');
+    btn.className='promo-btn';
+    const glyph=color==='w'?WG[type]:BG[type];
+    btn.innerHTML=`<span style="font-size:2.2rem;${color==='w'?'color:#fff;text-shadow:0 0 3px #000,1px 1px 2px #000':'color:#111;text-shadow:0 0 3px #fff'}">${glyph}</span><small>${names[type]}</small>`;
+    btn.onclick=()=>confirmPromo(type);
+    grid.appendChild(btn);
+  }
+  document.getElementById('promo-modal').classList.add('show');
+}
+
+function confirmPromo(type){
+  document.getElementById('promo-modal').classList.remove('show');
+  if(!pendingPromo)return;
+  const {fr,fc,tr,tc,color}=pendingPromo;
+  board[tr][tc]={color,type};
+  pendingPromo=null;
+  enPassantTarget=null;
+  updateCastlingRights({type:'P'},color,fr,fc);
+  const cost=PV['P']; pointsRemaining-=cost;
+  movedSquares.add(`${tr},${tc}`);
+  logMove(`${color==='w'?'White':'Black'}: P ${FILES[fc]}${8-fr}→${FILES[tc]}${8-tr} promotes to ${type} (${cost}pt)`);
+  saveHistory(`Pawn ${FILES[fc]}${8-fr}→${FILES[tc]}${8-tr}=${type}`);
+  document.getElementById('btn-undo').disabled=false;
+  updateDiceRemaining(); evaluateTurnState(); renderBoard();
+  if(gameMode==='ai'&&currentPlayer===aiColor&&!gameOver&&hasRolled&&!turnEnding&&pointsRemaining>0)
+    setTimeout(aiContinueTurn,600);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UNDO
+// ═══════════════════════════════════════════════════════════════════════════════
+function undoLastPiece(){
+  if(turnHistory.length===0)return;
+  const snap=turnHistory.pop();
+  board=snap.board; enPassantTarget=snap.ep; castlingRights=snap.cr;
+  captured=snap.cap; pointsRemaining=snap.pts; movedSquares=snap.moved;
+  forcedKing=false; selectedSq=null; pendingPromo=null;
+  document.getElementById('btn-undo').disabled=turnHistory.length===0;
+  updateDiceRemaining(); evaluateTurnState('Move undone.'); renderBoard();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TURN MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════════
+function endTurn(){
+  if(gameOver)return;
+  turnEnding=false; hasRolled=false; selectedSq=null; forcedKing=false;
+  movedSquares.clear(); turnHistory=[];
+  currentPlayer=currentPlayer==='w'?'b':'w';
+  document.getElementById('dice-total').textContent='–';
+  document.getElementById('die1').textContent='–'; document.getElementById('die2').textContent='–';
+  document.getElementById('dice-remaining').textContent='';
+  document.getElementById('btn-undo').disabled=true;
+  const name=currentPlayer==='w'?'White':'Black';
+  setStatus(`${name}'s turn — Roll the dice!`,'');
+  renderBoard();
+  if(gameMode==='ai'&&currentPlayer===aiColor){
+    document.getElementById('btn-roll').disabled=true;
+    setTimeout(aiTakeTurn,700);
+  } else {
+    document.getElementById('btn-roll').disabled=false;
+  }
+}
+
+function showGameOver(title,msg){
+  gameOver=true;
+  document.getElementById('btn-roll').disabled=true;
+  document.getElementById('btn-undo').disabled=true;
+  document.getElementById('thinking').classList.remove('show');
+  document.getElementById('go-title').textContent=title;
+  document.getElementById('go-msg').textContent=msg;
+  document.getElementById('gameover-modal').classList.add('show');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GAME HISTORY / BOARD VIEWER
+// ═══════════════════════════════════════════════════════════════════════════════
+function saveHistory(desc){
+  gameHistory.push({board:cloneBoard(board),desc,player:currentPlayer});
+}
+
+function toggleHistory(){
+  if(viewingHistory){exitHistory();return;}
+  if(gameHistory.length===0){setStatus('No history yet.','info');return;}
+  viewingHistory=true;
+  historyIndex=gameHistory.length-1; // start at most recent
+  document.getElementById('history-bar').classList.add('show');
+  document.getElementById('btn-roll').disabled=true;
+  document.getElementById('btn-undo').disabled=true;
+  renderHistoryBoard();
+}
+
+function exitHistory(){
+  viewingHistory=false;
+  historyIndex=-1;
+  document.getElementById('history-bar').classList.remove('show');
+  if(!gameOver){
+    document.getElementById('btn-roll').disabled=hasRolled||(gameMode==='ai'&&currentPlayer===aiColor);
+    document.getElementById('btn-undo').disabled=turnHistory.length===0;
+  }
+  renderBoard();
+}
+
+function histFirst(){historyIndex=0;renderHistoryBoard();}
+function histLast(){historyIndex=gameHistory.length-1;renderHistoryBoard();}
+function histPrev(){if(historyIndex>0){historyIndex--;renderHistoryBoard();}}
+function histNext(){if(historyIndex<gameHistory.length-1){historyIndex++;renderHistoryBoard();}}
+
+function renderHistoryBoard(){
+  const snap=gameHistory[historyIndex];
+  const label=`Move ${historyIndex+1}/${gameHistory.length}: ${snap.desc}`;
+  document.getElementById('hist-label').textContent=label;
+  const el=document.getElementById('board'); el.innerHTML='';
+  const b=snap.board;
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const sq=document.createElement('div');
+      sq.className='sq '+((r+c)%2===0?'light':'dark');
+      const p=b[r][c];
+      if(p){
+        const span=document.createElement('span');
+        span.className='piece '+(p.color==='w'?'white-piece':'black-piece');
+        span.textContent=p.color==='w'?WG[p.type]:BG[p.type];
+        sq.appendChild(span);
+      }
+      el.appendChild(sq);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// REPLAY (post-game)
+// ═══════════════════════════════════════════════════════════════════════════════
+function startReplay(){
+  document.getElementById('gameover-modal').classList.remove('show');
+  if(gameHistory.length===0)return;
+  viewingHistory=true;
+  historyIndex=0;
+  document.getElementById('history-bar').classList.add('show');
+  renderHistoryBoard();
+  setStatus('Replay — use ▶ / ◀ to navigate','info');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AI ENGINE
+// ═══════════════════════════════════════════════════════════════════════════════
+function aiTakeTurn(){
+  if(gameOver)return;
+  const d1=Math.floor(Math.random()*6)+1, d2=Math.floor(Math.random()*6)+1;
+  const e1=document.getElementById('die1'), e2=document.getElementById('die2');
+  e1.classList.add('rolling'); e2.classList.add('rolling');
+  let n=0;
+  const t=setInterval(()=>{
+    e1.textContent=Math.floor(Math.random()*6)+1; e2.textContent=Math.floor(Math.random()*6)+1;
+    if(++n>8){
+      clearInterval(t); e1.textContent=d1; e2.textContent=d2;
+      e1.classList.remove('rolling'); e2.classList.remove('rolling');
+      aiFinalizeDice(d1,d2);
+    }
+  },60);
+}
+
+function aiFinalizeDice(d1,d2){
+  diceTotal=d1+d2; pointsRemaining=diceTotal;
+  hasRolled=true; movedSquares.clear(); turnHistory=[];
+  selectedSq=null; forcedKing=false; turnEnding=false;
+  document.getElementById('dice-total').textContent=diceTotal;
+  updateDiceRemaining();
+  const name=currentPlayer==='w'?'White':'Black';
+  setStatus(`${name} (AI) rolled ${d1}+${d2}=${diceTotal}.`,'info');
+  renderBoard();
+
+  // Check stalemate / forced king
+  const strictVals=strictAvailVals(board,currentPlayer,movedSquares,enPassantTarget,castlingRights);
+  const exactPossible=canMakeExact(pointsRemaining,strictVals);
+  const kingPos=findKing(board,currentPlayer);
+  const kingHasMoves=kingPos!==null&&getLegalMoves(kingPos.r,kingPos.c).length>0;
+
+  if(!exactPossible&&!kingHasMoves){
+    setStatus(`Stalemate! ${name} can't make ${diceTotal} and King has no moves — ${name} loses!`,'danger');
+    logMove(`${name}: STALEMATE (rolled ${diceTotal})`);
+    setTimeout(()=>showGameOver('Stalemate!',`${name} (AI) rolled ${diceTotal} but has no valid moves.`),1500);
+    return;
+  }
+  if(!exactPossible&&kingHasMoves){forcedKing=true;}
+  document.getElementById('thinking').classList.add('show');
+  setTimeout(aiContinueTurn,500);
+}
+
+function aiContinueTurn(){
+  if(gameOver||!hasRolled)return;
+  document.getElementById('thinking').classList.add('show');
+  if(pointsRemaining===0){document.getElementById('thinking').classList.remove('show');setTimeout(endTurn,600);return;}
+
+  const sel=getSelectableSquares();
+  if(sel.size===0){document.getElementById('thinking').classList.remove('show');setTimeout(endTurn,600);return;}
+
+  const candidates=[];
+  for(const key of sel){
+    const [r,c]=key.split(',').map(Number);
+    const p=board[r][c];
+    const moves=getLegalMoves(r,c).filter(m=>{
+      const t=board[m.r][m.c];
+      if(t?.type==='K')return PV[p.type]===pointsRemaining;
+      return true;
+    });
+    for(const m of moves)candidates.push({fr:r,fc:c,tr:m.r,tc:m.c,castle:m.castle,ep:m.ep});
+  }
+
+  if(candidates.length===0){document.getElementById('thinking').classList.remove('show');setTimeout(endTurn,600);return;}
+
+  const best=aiDiff==='hard'?aiHardPick(candidates):aiMediumPick(candidates);
+  setTimeout(()=>{
+    document.getElementById('thinking').classList.remove('show');
+    // AI always promotes to Queen
+    executeMove(best.fr,best.fc,best.tr,best.tc,best.castle,best.ep);
+    // Auto-confirm queen promotion for AI
+    if(pendingPromo)confirmPromo('Q');
+  },aiDiff==='hard'?500:700);
+}
+
+function aiMediumPick(candidates){
+  const scored=candidates.map(mv=>{
+    const target=board[mv.tr][mv.tc];
+    let score=0;
+    if(target?.type==='K')score+=100000;
+    else if(target)score+=SCORE[target.type]*10;
+    const opp=currentPlayer==='w'?'b':'w';
+    const sim=simMove(board,mv.fr,mv.fc,mv.tr,mv.tc,mv.castle,mv.ep);
+    if(sqAtt(mv.tr,mv.tc,opp,sim))score-=SCORE[board[mv.fr][mv.fc].type]*5;
+    score+=(3.5-Math.abs(mv.tc-3.5))+(3.5-Math.abs(mv.tr-3.5));
+    score+=Math.random()*20;
+    return{...mv,score};
+  });
+  scored.sort((a,b)=>b.score-a.score);
+  return scored[0];
+}
+
+function aiHardPick(candidates){
+  let best=null,bestScore=-Infinity;
+  for(const mv of candidates){
+    const sim=simMove(board,mv.fr,mv.fc,mv.tr,mv.tc,mv.castle,mv.ep);
+    const target=board[mv.tr][mv.tc];
+    let score=0;
+    if(target?.type==='K'){score=1000000;}
+    else{
+      if(target)score+=SCORE[target.type];
+      score+=evalBoard(sim,currentPlayer);
+      const opp=currentPlayer==='w'?'b':'w';
+      if(sqAtt(mv.tr,mv.tc,opp,sim))score-=SCORE[board[mv.fr][mv.fc].type]*0.8;
+      const eKingPos=findKing(sim,opp);
+      if(eKingPos&&sqAtt(eKingPos.r,eKingPos.c,currentPlayer,sim))score+=300;
+    }
+    score+=Math.random()*10;
+    if(score>bestScore){bestScore=score;best=mv;}
+  }
+  return best||candidates[Math.floor(Math.random()*candidates.length)];
+}
+
+function evalBoard(b,color){
+  let score=0;
+  const opp=color==='w'?'b':'w';
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=b[r][c];if(!p)continue;
+    const v=SCORE[p.type];
+    const cb=(3.5-Math.abs(c-3.5))+(3.5-Math.abs(r-3.5));
+    if(p.color===color)score+=v+cb*5; else score-=v+cb*5;
+  }
+  return score;
+}
+
+function findKing(b,color){
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(b[r][c]?.color===color&&b[r][c]?.type==='K')return{r,c};
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════════════════════
+function updateDiceRemaining(){
+  const el=document.getElementById('dice-remaining');
+  if(!hasRolled){el.textContent='';return;}
+  el.textContent=pointsRemaining>0?`Points left: ${pointsRemaining}`:'All points used!';
+}
+function setStatus(msg,tone=''){
+  const el=document.getElementById('status-msg');
+  el.textContent=msg; el.className=tone||'';
+}
+function logMove(text){
+  const el=document.getElementById('move-log');
+  const div=document.createElement('div'); div.textContent=text; el.prepend(div);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════════
+initBoard(); renderBoard();
+</script>
+</body>
+</html>
