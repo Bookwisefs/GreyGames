@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🏪 Cashier Game!</title>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin:0; padding:0; }
+  body { font-family: 'Comic Sans MS', 'Comic Neue', cursive; overflow-x: hidden; }
+  button { font-family: inherit; cursor: pointer; }
+
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-18px)} }
+  @keyframes wiggle { 0%,100%{transform:rotate(-8deg)} 50%{transform:rotate(8deg)} }
+  @keyframes popIn  { 0%{transform:scale(.5);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+  @keyframes coinpop{ 0%{transform:scale(0) rotate(-30deg);opacity:0} 70%{transform:scale(1.2) rotate(5deg)} 100%{transform:scale(1) rotate(0);opacity:1} }
+  @keyframes sparkle{ 0%{transform:scale(1)} 30%{transform:scale(1.4) rotate(10deg);filter:brightness(1.6)} 60%{transform:scale(.9) rotate(-5deg)} 100%{transform:scale(1);filter:brightness(1)} }
+  @keyframes handpay{ 0%{transform:translateX(0) rotate(0)} 30%{transform:translateX(-40px) rotate(-20deg)} 60%{transform:translateX(0) rotate(10deg) scale(1.2)} 100%{transform:translateX(0) rotate(0) scale(1)} }
+  @keyframes spin    { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes fadeup  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes pulse   { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+
+  .bounce  { animation: bounce  0.6s ease; }
+  .wiggle  { animation: wiggle  0.4s infinite; }
+  .popin   { animation: popIn   0.3s ease; }
+  .spin    { animation: spin    1s linear infinite; }
+  .handpay { animation: handpay 0.9s ease; }
+
+  .screen { min-height:100vh; padding:16px; transition: background 0.5s; }
+
+  .picbtn {
+    border-radius:22px; border:4px solid #2d3436;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    box-shadow:5px 5px 0 #2d3436; transition:transform .1s,box-shadow .1s;
+    background:white; padding:4px; gap:2px; position:relative;
+  }
+  .picbtn:active { transform:translate(3px,3px); box-shadow:2px 2px 0 #2d3436; }
+  .picbtn:disabled { border-color:#bdc3c7;box-shadow:none;background:#ecf0f1;cursor:not-allowed;opacity:0.6; }
+
+  .bubble {
+    background:white; border:3px solid #2d3436; border-radius:20px;
+    padding:12px 18px; max-width:300px; margin:0 auto;
+    font-weight:800; font-size:18px; text-align:center;
+    box-shadow:4px 4px 0 #2d3436; animation:popIn .3s ease; position:relative;
+  }
+  .bubble::after {
+    content:''; position:absolute; bottom:-18px; left:50%; transform:translateX(-50%);
+    width:0; height:0;
+    border-left:12px solid transparent; border-right:12px solid transparent; border-top:18px solid #2d3436;
+  }
+
+  .tab-row { display:flex; gap:12px; justify-content:center; margin-bottom:14px; }
+  .tab-btn {
+    flex:1; max-width:110px; height:70px; border-radius:18px;
+    border:4px solid #2d3436; font-size:28px; box-shadow:4px 4px 0 #2d3436;
+    background:rgba(255,255,255,.85); transition:transform .1s,box-shadow .1s;
+  }
+  .tab-btn.active { background:#fdcb6e; }
+  .tab-btn:active { transform:translate(2px,2px); box-shadow:2px 2px 0 #2d3436; }
+
+  .item-grid { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; }
+
+  .badge {
+    position:absolute; top:-8px; right:-8px;
+    background:#e74c3c; color:white; border-radius:50%;
+    width:26px; height:26px; display:flex; align-items:center; justify-content:center;
+    font-weight:900; font-size:13px; border:3px solid white;
+  }
+
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
+  .coin-bar { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+
+  .order-box {
+    background:rgba(255,255,255,.92); border:4px solid #2d3436;
+    border-radius:22px; padding:14px; margin-bottom:14px;
+    box-shadow:5px 5px 0 #2d3436;
+  }
+
+  .online-badge {
+    background:#55efc4; border:3px solid #2d3436; border-radius:12px;
+    padding:4px 12px; font-weight:800; font-size:13px;
+  }
+
+  .section-label { font-size:28px; text-align:center; margin-bottom:8px; }
+  .char-area { text-align:center; margin-bottom:8px; }
+  .char { font-size:72px; display:inline-block; transition:filter .3s; }
+  .char.excited { filter:drop-shadow(0 0 12px gold); }
+
+  /* ── ROOM SCREEN ── */
+  #room-screen {
+    background:linear-gradient(160deg,#a29bfe,#6c5ce7,#fd79a8);
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:16px; text-align:center; padding:24px;
+  }
+  .room-card {
+    background:white; border:5px solid #2d3436; border-radius:28px;
+    padding:24px 28px; box-shadow:7px 7px 0 #2d3436; max-width:320px; width:100%;
+  }
+  .room-card h2 { font-size:22px; color:#2d3436; margin-bottom:14px; }
+  .code-display {
+    font-size:52px; font-weight:900; letter-spacing:10px; color:#6c5ce7;
+    background:#f3f0ff; border:4px dashed #6c5ce7; border-radius:16px;
+    padding:12px; margin:10px 0; animation:pulse 1.5s ease infinite;
+  }
+  .code-input {
+    font-size:36px; font-weight:900; letter-spacing:8px; text-align:center;
+    width:100%; border:4px solid #2d3436; border-radius:14px;
+    padding:10px; font-family:inherit; color:#2d3436; text-transform:uppercase;
+    outline:none; background:#fff9e6;
+  }
+  .big-btn {
+    width:100%; padding:14px; font-size:20px; font-weight:900;
+    border:4px solid #2d3436; border-radius:18px; box-shadow:5px 5px 0 #2d3436;
+    cursor:pointer; font-family:inherit; transition:transform .1s, box-shadow .1s;
+    margin-top:8px;
+  }
+  .big-btn:active { transform:translate(3px,3px); box-shadow:2px 2px 0 #2d3436; }
+  .big-btn.green  { background:#55efc4; }
+  .big-btn.yellow { background:#fdcb6e; }
+  .big-btn.pink   { background:#fd79a8; }
+  .or-divider { color:white; font-size:20px; font-weight:900; }
+
+  /* ── ROLE SCREEN ── */
+  #role-screen {
+    background:linear-gradient(160deg,#ffeaa7,#fab1a0,#fd79a8);
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:18px; text-align:center;
+  }
+  .role-btn {
+    background:white; border:5px solid #2d3436; border-radius:28px;
+    padding:22px 30px; box-shadow:7px 7px 0 #2d3436;
+    transition:transform .1s,box-shadow .1s;
+  }
+  .role-btn:active { transform:translate(4px,4px); box-shadow:3px 3px 0 #2d3436; }
+  .role-btn .big { font-size:70px; }
+  .role-btn .lbl { font-size:20px; font-weight:900; margin-top:4px; }
+
+  /* Customer scenes */
+  #customer-screen.store { background:linear-gradient(160deg,#ffeaa7,#fab1a0); }
+  #customer-screen.jobs  { background:linear-gradient(160deg,#55efc4,#00b894); }
+  #customer-screen.home  { background:linear-gradient(160deg,#a29bfe,#6c5ce7); }
+
+  /* Cashier screen */
+  #cashier-screen { background:linear-gradient(160deg,#74b9ff,#0984e3); }
+
+  .hint-box {
+    background:rgba(255,255,255,.65); border:3px dashed #2d3436;
+    border-radius:16px; padding:12px 16px; font-size:14px;
+    font-weight:700; color:#2d3436; text-align:center; margin-top:10px;
+  }
+
+  .empty-home { text-align:center; margin-top:20px; }
+  .broke-msg  { text-align:center; margin-top:20px; }
+
+  .status-pill {
+    background:rgba(255,255,255,.85); border:3px solid #2d3436; border-radius:14px;
+    padding:5px 12px; font-size:13px; font-weight:800; margin-bottom:8px;
+    display:inline-block;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ ROOM SCREEN ═══ -->
+<div id="room-screen" class="screen">
+  <div style="font-size:64px;animation:bounce 1.2s infinite;">🏪</div>
+  <div style="font-size:34px;font-weight:900;color:white;text-shadow:4px 4px 0 #2d3436;">Cashier Game!</div>
+
+  <!-- CREATE -->
+  <div class="room-card">
+    <h2>🆕 Create a Room</h2>
+    <p style="font-size:14px;color:#636e72;margin-bottom:10px;">Share this code with your friend!</p>
+    <div class="code-display" id="room-code-display">????</div>
+    <button class="big-btn green" onclick="createRoom()">🎮 Create Room!</button>
+  </div>
+
+  <div class="or-divider">— or —</div>
+
+  <!-- JOIN -->
+  <div class="room-card">
+    <h2>🚪 Join a Room</h2>
+    <p style="font-size:14px;color:#636e72;margin-bottom:10px;">Type the code your friend gave you!</p>
+    <input class="code-input" id="join-code-input" maxlength="4" placeholder="ABCD"
+      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"/>
+    <button class="big-btn yellow" onclick="joinRoom()">🚀 Join Room!</button>
+    <div id="join-error" style="color:#e17055;font-size:14px;font-weight:800;margin-top:8px;display:none;">
+      ❌ Room not found! Check the code and try again.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ ROLE SCREEN ═══ -->
+<div id="role-screen" class="screen" style="display:none;">
+  <div style="font-size:64px;animation:bounce 1.2s infinite;">🏪</div>
+  <div style="font-size:38px;font-weight:900;color:#2d3436;text-shadow:4px 4px 0 #fdcb6e;">Cashier Game!</div>
+
+  <div id="role-char" class="char">🙂</div>
+  <div id="role-bubble" style="display:none;" class="bubble"></div>
+
+  <div class="status-pill" id="room-pill">Room: ????</div>
+  <div style="font-size:22px;font-weight:800;color:#2d3436;">Who are you? 👇</div>
+
+  <div style="display:flex;gap:22px;flex-wrap:wrap;justify-content:center;">
+    <button class="role-btn" onclick="pickRole('customer')"
+      onmouseenter="hoverRole('Shopping time! Be the customer!')">
+      <div class="big">🧒</div>
+      <div class="lbl">🛒 Customer!</div>
+    </button>
+    <button class="role-btn" onclick="pickRole('cashier')"
+      onmouseenter="hoverRole('Help the customers! Be the cashier!')">
+      <div class="big">👩‍💼</div>
+      <div class="lbl">💼 Cashier!</div>
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ CUSTOMER SCREEN ═══ -->
+<div id="customer-screen" class="screen store" style="display:none;">
+
+  <div class="header">
+    <button class="picbtn" style="width:54px;height:54px;font-size:24px;" onclick="goBack()">⬅️</button>
+    <div class="coin-bar" id="cust-coins">💰</div>
+    <div style="position:relative;display:inline-block;">
+      <button class="picbtn" style="width:54px;height:54px;font-size:24px;" onclick="custSceneGo('home')">🎒</button>
+      <div class="badge" id="bag-badge" style="display:none;">0</div>
+    </div>
+  </div>
+
+  <div class="char-area">
+    <div id="cust-char" class="char">🙂</div>
+    <div id="cust-bubble" style="display:none;margin-top:8px;" class="bubble"></div>
+  </div>
+
+  <div id="hand-anim" style="display:none;text-align:center;font-size:60px;">🤲</div>
+
+  <div class="tab-row">
+    <button class="tab-btn active" id="tab-store" onclick="custSceneGo('store')">🏪</button>
+    <button class="tab-btn"        id="tab-jobs"  onclick="custSceneGo('jobs')">💼</button>
+    <button class="tab-btn"        id="tab-home"  onclick="custSceneGo('home')">🏠</button>
+  </div>
+
+  <div id="scene-store">
+    <div class="section-label">🍬</div>
+    <div class="item-grid" id="grid-food"></div>
+    <div class="section-label" style="margin-top:14px;">🍳</div>
+    <div class="item-grid" id="grid-cooked"></div>
+    <div class="section-label" style="margin-top:14px;">🏆</div>
+    <div class="item-grid" id="grid-prize"></div>
+    <div class="hint-box" id="no-cashier-hint">
+      💡 Ask your friend to open the game and pick 👩‍💼 Cashier!
+    </div>
+  </div>
+
+  <div id="scene-jobs" style="display:none;">
+    <div class="item-grid" id="grid-jobs"></div>
+    <div id="jobs-coins" style="text-align:center;font-size:28px;margin-top:14px;"></div>
+  </div>
+
+  <div id="scene-home" style="display:none;">
+    <div id="inventory-grid" class="item-grid"></div>
+    <div id="empty-home" class="empty-home" style="display:none;">
+      <div style="font-size:72px;">🏠</div>
+      <div style="font-size:22px;font-weight:800;color:white;margin-top:8px;">Go shopping first! 🛒</div>
+      <button class="picbtn" style="width:80px;height:80px;font-size:44px;margin:14px auto;display:flex;" onclick="custSceneGo('store')">🏪</button>
+    </div>
+    <div id="share-stars" style="text-align:center;font-size:28px;margin-top:12px;"></div>
+    <div id="broke-msg" class="broke-msg" style="display:none;">
+      <div style="font-size:52px;">😢</div>
+      <div style="font-size:20px;font-weight:800;color:white;">No more coins! Share next time! 💝</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════ CASHIER SCREEN ═══ -->
+<div id="cashier-screen" class="screen" style="display:none;">
+
+  <div class="header">
+    <button class="picbtn" style="width:54px;height:54px;font-size:24px;" onclick="goBack()">⬅️</button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div id="cust-online-badge" class="online-badge" style="display:none;">🧒 ✅ Online!</div>
+      <div class="coin-bar" id="cash-coins">💰</div>
+    </div>
+  </div>
+
+  <div class="char-area">
+    <div id="cash-char" class="char">🙂</div>
+    <div id="cash-bubble" style="display:none;margin-top:8px;" class="bubble"></div>
+  </div>
+
+  <div id="cook-spin" style="display:none;text-align:center;font-size:52px;">👨‍🍳</div>
+
+  <div class="order-box">
+    <div id="order-title" style="font-size:24px;font-weight:900;text-align:center;margin-bottom:10px;">📋 🤔</div>
+    <div id="order-empty" style="text-align:center;font-size:36px;opacity:.4;">💤</div>
+    <div class="item-grid" id="order-queue"></div>
+  </div>
+
+  <div id="practice-box" style="background:rgba(255,255,255,.75);border:3px dashed #2d3436;border-radius:18px;padding:12px;margin-bottom:12px;">
+    <div style="text-align:center;font-size:16px;font-weight:800;margin-bottom:10px;">🎮 Practice! Pick an order:</div>
+    <div class="item-grid" id="practice-grid"></div>
+  </div>
+
+  <div id="earned-coins" style="text-align:center;margin-top:8px;font-size:24px;"></div>
+</div>
+
+<script>
+// ══════════════════════════ FIREBASE ══════════════════════════
+const firebaseConfig = {
+  apiKey:            "AIzaSyBBSscmGkzsEWK4uw7QyLi5VNiv4Vfsm2M",
+  authDomain:        "dreidel-8d1cd.firebaseapp.com",
+  databaseURL:       "https://dreidel-8d1cd-default-rtdb.firebaseio.com",
+  projectId:         "dreidel-8d1cd",
+  storageBucket:     "dreidel-8d1cd.appspot.com",
+  messagingSenderId: "1052615896794",
+  appId:             "1:1052615896794:web:e32328d062ec98c3cdbfe3"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ══════════════════════════ ROOM ══════════════════════════
+let roomCode   = null;   // e.g. "AB3X"
+let roomRef    = null;   // db.ref('cashier_rooms/AB3X')
+let msgsRef    = null;   // roomRef.child('msgs')
+let joinedAt   = 0;      // only process msgs after this time
+let myRole     = null;   // 'customer' | 'cashier'
+let msgsListener = null;
+
+function genCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I,O,0,1 — easy to read
+  let c='';
+  for(let i=0;i<4;i++) c+=chars[Math.floor(Math.random()*chars.length)];
+  return c;
+}
+
+function createRoom(){
+  sfx.tap();
+  roomCode=genCode();
+  roomRef=db.ref('cashier_rooms/'+roomCode);
+  // write a marker so it exists
+  roomRef.child('created').set(Date.now()).then(()=>{
+    document.getElementById('room-code-display').textContent=roomCode;
+    speak('Your room code is '+roomCode.split('').join(' '));
+    // go to role screen after a moment
+    setTimeout(()=>showRoleScreen(),1200);
+  }).catch(()=>{
+    alert('Could not connect to Firebase. Check your internet connection.');
+  });
+}
+
+function joinRoom(){
+  sfx.tap();
+  const code=document.getElementById('join-code-input').value.trim().toUpperCase();
+  if(code.length!==4){ document.getElementById('join-error').style.display='block'; return; }
+  // check if room exists
+  db.ref('cashier_rooms/'+code+'/created').once('value').then(snap=>{
+    if(!snap.exists()){
+      document.getElementById('join-error').style.display='block';
+      sfx.wrong();
+      return;
+    }
+    document.getElementById('join-error').style.display='none';
+    roomCode=code;
+    roomRef=db.ref('cashier_rooms/'+roomCode);
+    speak('Joining room '+code.split('').join(' '));
+    showRoleScreen();
+  }).catch(()=>{
+    alert('Could not connect to Firebase. Check your internet connection.');
+  });
+}
+
+function showRoleScreen(){
+  document.getElementById('room-screen').style.display='none';
+  document.getElementById('role-screen').style.display='flex';
+  document.getElementById('room-pill').textContent='Room: '+roomCode;
+}
+
+// ══════════════════════════ MESSAGING ══════════════════════════
+function send(type, payload={}){
+  if(!roomRef) return;
+  roomRef.child('msgs').push({type, payload, t:Date.now(), from:myRole});
+}
+
+function startListening(){
+  joinedAt=Date.now();
+  msgsRef=roomRef.child('msgs');
+  // listen only to messages from now on
+  const query=msgsRef.orderByChild('t').startAt(joinedAt);
+  msgsListener=query.on('child_added', snap=>{
+    const msg=snap.val();
+    if(!msg || msg.from===myRole) return; // ignore own messages
+    handleMessage(msg.type, msg.payload||{});
+  });
+}
+
+function stopListening(){
+  if(msgsRef && msgsListener){
+    msgsRef.off('child_added', msgsListener);
+    msgsListener=null;
+  }
+}
+
+function handleMessage(type, payload){
+  if(myRole==='customer'){
+    if(type==='CASHIER_ONLINE'){ cashierOnline=true; hideEl('no-cashier-hint'); }
+    if(type==='CASHIER_OFFLINE'){ cashierOnline=false; showEl('no-cashier-hint'); }
+    if(type==='ORDER_READY'){
+      sfx.ready();
+      custInventory.push(payload);
+      renderInventory();
+      custSay(`Yay! Your ${payload.name} is ready! ${payload.emoji}`,'excited');
+      setTimeout(()=>{
+        const btn=document.querySelector(`[data-sparkle="${payload.id}"]`);
+        if(btn){ btn.style.animation='sparkle .6s ease'; setTimeout(()=>btn.style.animation='',700); }
+      },100);
+    }
+  }
+  if(myRole==='cashier'){
+    if(type==='CUSTOMER_ONLINE'){ customerOnline=true; showEl('cust-online-badge'); hideEl('practice-box'); send('CASHIER_ONLINE'); }
+    if(type==='CUSTOMER_OFFLINE'){ customerOnline=false; hideEl('cust-online-badge'); showEl('practice-box'); }
+    if(type==='NEW_ORDER'){
+      sfx.tap();
+      cashOrders.push(payload);
+      renderOrders();
+      if(payload.type==='cooked'){
+        cashSay(`The customer wants ${payload.name}! Tell the cook! 👨‍🍳`,'cooking');
+        const cook=el('cook-spin');
+        cook.style.display='block'; cook.className='spin';
+        setTimeout(()=>{ cook.style.display='none'; },3000);
+      } else {
+        cashSay(`The customer wants ${payload.name}! Give it to them! ${payload.emoji}`,'happy');
+      }
+    }
+    if(type==='JOB_DONE')   cashSay('The customer did a job! So good! 👏','excited');
+    if(type==='ITEM_SHARED') cashSay('They shared! So kind! 💝','love');
+  }
+}
+
+// ══════════════════════════ AUDIO ══════════════════════════
+let _actx=null;
+function actx(){ if(!_actx)_actx=new(window.AudioContext||window.webkitAudioContext)(); return _actx; }
+function beep(freq=520,dur=0.12,type='sine',vol=0.25,delay=0){
+  try{
+    const c=actx(),o=c.createOscillator(),g=c.createGain();
+    o.connect(g); g.connect(c.destination);
+    o.type=type; o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,c.currentTime+delay);
+    g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+delay+dur);
+    o.start(c.currentTime+delay); o.stop(c.currentTime+delay+dur+0.05);
+  }catch(e){}
+}
+const sfx={
+  tap:   ()=>beep(600,0.08,'sine',0.2),
+  coin:  ()=>{beep(880,0.07,'sine',0.3);beep(1100,0.09,'sine',0.25,0.07);beep(1320,0.13,'sine',0.2,0.14);},
+  buy:   ()=>{beep(440,0.07,'triangle',0.3);beep(660,0.1,'triangle',0.25,0.08);beep(880,0.15,'triangle',0.2,0.16);},
+  wrong: ()=>{beep(220,0.15,'sawtooth',0.3);beep(180,0.2,'sawtooth',0.25,0.12);},
+  share: ()=>{[0,0.08,0.16,0.24].forEach((d,i)=>beep(660+i*110,0.12,'sine',0.22,d));},
+  cheer: ()=>{[0,0.06,0.12,0.18,0.24,0.30].forEach((d,i)=>beep(500+i*80,0.1,'sine',0.2,d));},
+  eat:   ()=>{beep(300,0.05,'sine',0.2);beep(250,0.07,'sine',0.15,0.06);beep(200,0.1,'sine',0.1,0.13);},
+  ready: ()=>{beep(660,0.1,'sine',0.3);beep(880,0.1,'sine',0.3,0.1);beep(1100,0.2,'sine',0.3,0.2);},
+};
+
+// ══════════════════════════ TTS ══════════════════════════
+function speak(text){
+  if(!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.rate=0.88; u.pitch=1.25; u.volume=1;
+  const voices=window.speechSynthesis.getVoices();
+  const pick=voices.find(v=>/samantha|karen|moira|victoria|tessa|zira|hazel/i.test(v.name))
+    ||voices.find(v=>v.lang.startsWith('en'));
+  if(pick) u.voice=pick;
+  window.speechSynthesis.speak(u);
+}
+window.speechSynthesis&&window.speechSynthesis.addEventListener('voiceschanged',()=>{});
+
+// ══════════════════════════ DATA ══════════════════════════
+const ITEMS=[
+  {id:'lollipop',name:'Lollipop',  emoji:'🍭',price:3,type:'food',  say:'A yummy lollipop!'},
+  {id:'lolly',   name:'Lolly',     emoji:'🍬',price:2,type:'food',  say:'A sweet lolly!'},
+  {id:'gumball', name:'Gumball',   emoji:'🫧',price:1,type:'food',  say:'A round gumball!'},
+  {id:'grapes',  name:'Grapes',    emoji:'🍇',price:2,type:'food',  say:'Juicy grapes!'},
+  {id:'cookie',  name:'Cookie',    emoji:'🍪',price:3,type:'food',  say:'A yummy cookie!'},
+  {id:'pizza',   name:'Pizza',     emoji:'🍕',price:6,type:'cooked',say:'Hot cheesy pizza!'},
+  {id:'eggs',    name:'Eggs',      emoji:'🍳',price:4,type:'cooked',say:'Sizzling eggs!'},
+  {id:'omelette',name:'Omelette',  emoji:'🥚',price:5,type:'cooked',say:'A fluffy omelette!'},
+  {id:'latke',   name:'Latke',     emoji:'🥞',price:5,type:'cooked',say:'Crispy latkes!'},
+  {id:'dreidel', name:'Dreidel',   emoji:'🪆',price:8,type:'prize', say:'A spinning dreidel!'},
+  {id:'star',    name:'Gold Star', emoji:'⭐',price:10,type:'prize', say:'A shiny gold star!'},
+  {id:'balloon', name:'Balloon',   emoji:'🎈',price:7,type:'prize', say:'A bouncy balloon!'},
+];
+const JOBS=[
+  {id:'coat',   emoji:'🧥',price:3,say:'Hang up your coat! Good job!'},
+  {id:'shoes',  emoji:'👟',price:2,say:'Put away your shoes! Amazing!'},
+  {id:'teeth',  emoji:'🪥',price:2,say:'Brush your teeth! Sparkly clean!'},
+  {id:'shabbos',emoji:'✨',price:5,say:'Help clean for Shabbos! Wonderful!'},
+  {id:'listen', emoji:'👂',price:4,say:'You listened to Mummy and Daddy! Superstar!'},
+  {id:'tidy',   emoji:'🛏️',price:3,say:'Tidy your room! Great work!'},
+  {id:'table',  emoji:'🍽️',price:2,say:'Set the table! So helpful!'},
+];
+
+// ══════════════════════════ STATE ══════════════════════════
+let currentRole=null;
+let custMoney=10,custInventory=[],custDoneJobs=[],custShared=0,activeCustScene='store',cashierOnline=false;
+let cashOrders=[],cashEarned=0,customerOnline=false;
+
+// ══════════════════════════ HELPERS ══════════════════════════
+function showEl(id){ document.getElementById(id).style.display=''; }
+function hideEl(id){ document.getElementById(id).style.display='none'; }
+function el(id){ return document.getElementById(id); }
+
+let bubbleTimers={};
+function showBubble(charId,bubbleId,text,color='white'){
+  const b=el(bubbleId);
+  b.textContent=text; b.style.background=color;
+  b.style.display='block'; b.className='bubble popin';
+  clearTimeout(bubbleTimers[bubbleId]);
+  bubbleTimers[bubbleId]=setTimeout(()=>{ b.style.display='none'; },3200);
+}
+
+const FACES={happy:'😊',sad:'😢',excited:'🤩',neutral:'🙂',cooking:'👨‍🍳',love:'🥰'};
+function setMood(charId,mood){
+  const c=el(charId);
+  c.textContent=FACES[mood]||'🙂';
+  c.className='char'+(mood==='excited'?' excited':'');
+  if(mood==='excited')      c.style.animation='wiggle 0.4s infinite';
+  else if(mood==='happy')   c.style.animation='bounce 0.5s ease';
+  else                      c.style.animation='none';
+}
+
+function custSay(text,mood='happy'){ speak(text); setMood('cust-char',mood); showBubble('cust-char','cust-bubble',text,mood==='sad'?'#ffeaa7':mood==='love'?'#fd79a8':'white'); }
+function cashSay(text,mood='happy'){ speak(text); setMood('cash-char',mood); showBubble('cash-char','cash-bubble',text,mood==='cooking'?'#ffeaa7':'white'); }
+
+function makeCoins(amount){
+  const n=Math.min(amount,15);
+  let html='<span style="font-size:28px;">💰</span>';
+  for(let i=0;i<n;i++) html+=`<span style="font-size:22px;display:inline-block;animation:coinpop 0.3s ease ${i*0.04}s both">🪙</span>`;
+  if(amount>15) html+=`<span style="font-size:18px;font-weight:900;color:#f9ca24;">+${amount-15}</span>`;
+  return html;
+}
+function updateCustCoins(){ el('cust-coins').innerHTML=makeCoins(custMoney); }
+function updateCashCoins(){ el('cash-coins').innerHTML=makeCoins(cashEarned); }
+
+// ══════════════════════════ ROLE PICKER ══════════════════════════
+function hoverRole(text){ speak(text); }
+
+function pickRole(role){
+  sfx.cheer();
+  myRole=currentRole=role;
+  const msg=role==='customer'?'You are the customer! Let us go shopping!':'You are the cashier! Help the customers!';
+  setMood('role-char','excited');
+  showBubble('role-char','role-bubble',msg);
+  speak(msg);
+  startListening();
+  setTimeout(()=>{
+    hideEl('role-screen');
+    if(role==='customer') initCustomer();
+    else initCashier();
+  },900);
+}
+
+function goBack(){
+  sfx.tap();
+  stopListening();
+  send('CUSTOMER_OFFLINE');
+  send('CASHIER_OFFLINE');
+  // reset state
+  custMoney=10; custInventory=[]; custDoneJobs=[]; custShared=0; activeCustScene='store'; cashierOnline=false;
+  cashOrders=[]; cashEarned=0; customerOnline=false; currentRole=null; myRole=null;
+  // back to room screen
+  ['customer-screen','cashier-screen','role-screen'].forEach(id=>hideEl(id));
+  showEl('room-screen');
+}
+
+// ══════════════════════════ CUSTOMER ══════════════════════════
+function initCustomer(){
+  el('customer-screen').style.display='block';
+  renderStore(); renderJobs(); updateCustCoins();
+  custSceneSwitchInternal('store');
+  setTimeout(()=>custSay('Welcome! Let us go shopping! 🛒','excited'),600);
+  send('CUSTOMER_ONLINE');
+}
+
+function custSceneGo(scene){
+  sfx.tap();
+  activeCustScene=scene;
+  custSceneSwitchInternal(scene);
+  const labels={store:'The shop!',jobs:'Time to do jobs!',home:'Home sweet home!'};
+  speak(labels[scene]);
+}
+function custSceneSwitchInternal(scene){
+  const scr=el('customer-screen');
+  scr.className='screen '+scene;
+  ['store','jobs','home'].forEach(s=>{
+    el('scene-'+s).style.display=s===scene?'block':'none';
+    el('tab-'+s).className='tab-btn'+(s===scene?' active':'');
+  });
+}
+
+function renderStore(){
+  ['food','cooked','prize'].forEach(type=>{
+    const grid=el('grid-'+type);
+    grid.innerHTML=ITEMS.filter(i=>i.type===type).map(item=>{
+      const coins='🪙'.repeat(Math.min(item.price,6))+(item.price>6?`+${item.price-6}`:'');
+      const dis=custMoney<item.price;
+      return `<div data-sparkle="${item.id}" style="text-align:center;">
+        <button class="picbtn" ${dis?'disabled':''} data-id="${item.id}"
+          style="width:90px;height:90px;font-size:44px;background:${dis?'#ecf0f1':'#fff9e6'};${dis?'border-color:#bdc3c7;box-shadow:none;':''}"
+          onclick="buyItem('${item.id}')">
+          <span style="line-height:1;">${item.emoji}</span>
+          <div style="font-size:11px;color:#636e72;font-weight:700;">${coins}</div>
+        </button>
+      </div>`;
+    }).join('');
+  });
+}
+
+function buyItem(id){
+  const item=ITEMS.find(i=>i.id===id);
+  if(custMoney<item.price){ sfx.wrong(); custSay('Oh no! Not enough coins! Do a job first! 💼','sad'); return; }
+  sfx.buy();
+  custMoney-=item.price;
+  updateCustCoins();
+  renderStore();
+  const h=el('hand-anim');
+  h.style.display='block'; h.className='handpay';
+  setTimeout(()=>{ h.style.display='none'; h.className=''; },950);
+  custSay(item.say,'excited');
+  send('NEW_ORDER',{...item,orderId:Date.now()});
+  if(!cashierOnline){
+    setTimeout(()=>{ custInventory.push(item); renderInventory(); sfx.ready(); custSay(`Here is your ${item.name}! Enjoy!`,'happy'); },1200);
+  }
+}
+
+function renderJobs(){
+  const grid=el('grid-jobs');
+  grid.innerHTML=JOBS.map(job=>{
+    const done=custDoneJobs.includes(job.id);
+    const coins='🪙'.repeat(job.price);
+    return `<div style="text-align:center;">
+      <button class="picbtn" ${done?'disabled':''}
+        style="width:90px;height:90px;font-size:44px;background:${done?'#dfe6e9':'#e8f5e9'};${done?'border-color:#bdc3c7;box-shadow:none;':''}"
+        onclick="doJob('${job.id}')">
+        <span style="line-height:1;">${done?'✅':job.emoji}</span>
+        <div style="font-size:11px;color:#636e72;font-weight:700;">${done?'Done!':coins}</div>
+      </button>
+    </div>`;
+  }).join('');
+  el('jobs-coins').textContent='🪙'.repeat(Math.min(custDoneJobs.length*2,10));
+}
+
+function doJob(id){
+  if(custDoneJobs.includes(id)) return;
+  const job=JOBS.find(j=>j.id===id);
+  sfx.coin();
+  custDoneJobs.push(id);
+  custMoney+=job.price;
+  updateCustCoins();
+  renderJobs();
+  renderStore();
+  custSay(job.say,'excited');
+  send('JOB_DONE',{jobId:id});
+}
+
+function renderInventory(){
+  const grid=el('inventory-grid');
+  const bagBadge=el('bag-badge');
+  if(custInventory.length===0){
+    grid.innerHTML=''; bagBadge.style.display='none'; showEl('empty-home');
+  } else {
+    hideEl('empty-home');
+    bagBadge.style.display='flex'; bagBadge.textContent=custInventory.length;
+    grid.innerHTML=custInventory.map((item,idx)=>{
+      const eatBtn=item.type!=='prize'?`<button class="picbtn" style="width:60px;height:60px;font-size:30px;background:#fdcb6e;" onclick="eatItem(${idx})">😋</button>`:'';
+      return `<div style="text-align:center;">
+        <div style="font-size:52px;margin-bottom:6px;">${item.emoji}</div>
+        <div style="display:flex;gap:8px;justify-content:center;">
+          ${eatBtn}
+          <button class="picbtn" style="width:60px;height:60px;font-size:30px;background:#fd79a8;" onclick="shareItem(${idx})">💝</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  el('share-stars').textContent='🌟'.repeat(Math.min(custShared,8));
+  const broke=custMoney<=0&&custInventory.length===0&&custDoneJobs.length>=JOBS.length;
+  broke?showEl('broke-msg'):hideEl('broke-msg');
+}
+
+function eatItem(idx){
+  const item=custInventory[idx];
+  sfx.eat();
+  custInventory.splice(idx,1);
+  renderInventory();
+  custSay(`Yummy yummy! You ate the ${item.name}! 😋`,'happy');
+}
+
+function shareItem(idx){
+  const item=custInventory[idx];
+  sfx.share();
+  custInventory.splice(idx,1);
+  custShared++; custMoney+=2;
+  updateCustCoins(); renderInventory();
+  custSay(`Wow! You shared your ${item.name}! Here are two coins! 🪙🪙`,'love');
+  send('ITEM_SHARED',{name:item.name});
+}
+
+// ══════════════════════════ CASHIER ══════════════════════════
+function initCashier(){
+  el('cashier-screen').style.display='block';
+  renderPracticeGrid(); updateCashCoins(); renderOrders();
+  setTimeout(()=>cashSay('Hello! I am the cashier! I will help the customers! 👋','excited'),600);
+  send('CASHIER_ONLINE');
+}
+
+function renderOrders(){
+  const queue=el('order-queue'),title=el('order-title'),empty=el('order-empty');
+  if(cashOrders.length===0){
+    queue.innerHTML=''; empty.style.display='block'; title.textContent='📋 🤔';
+  } else {
+    empty.style.display='none';
+    title.textContent=`📋 ${cashOrders.length} 🛎️`;
+    queue.innerHTML=cashOrders.map((order,idx)=>`
+      <div style="text-align:center;">
+        ${order.type==='cooked'?'<div style="font-size:20px;margin-bottom:4px;">👨‍🍳❓</div>':''}
+        <button class="picbtn" style="width:88px;height:88px;font-size:44px;background:#55efc4;"
+          onclick="fillOrder(${idx})">${order.emoji}</button>
+      </div>`).join('');
+  }
+  el('earned-coins').textContent='🪙'.repeat(Math.min(cashEarned,12));
+}
+
+function fillOrder(idx){
+  const order=cashOrders[idx];
+  sfx.cheer();
+  cashOrders.splice(idx,1);
+  cashEarned+=2;
+  updateCashCoins(); renderOrders();
+  send('ORDER_READY',{...order});
+  cashSay(`Here you go! Enjoy your ${order.name}! 😊`,'excited');
+}
+
+function renderPracticeGrid(){
+  el('practice-grid').innerHTML=ITEMS.map(item=>`
+    <button class="picbtn" style="width:70px;height:70px;font-size:36px;background:#ffeaa7;"
+      onclick="addManualOrder('${item.id}')">${item.emoji}</button>
+  `).join('');
+}
+
+function addManualOrder(id){
+  const item=ITEMS.find(i=>i.id===id);
+  sfx.tap();
+  cashOrders.push({...item,orderId:Date.now()});
+  renderOrders();
+  cashSay(`New order: ${item.name}! ${item.emoji}`,'happy');
+}
+
+// generate a code on load so it's ready
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('room-code-display').textContent=genCode();
+});
+</script>
+</body>
+</html>
