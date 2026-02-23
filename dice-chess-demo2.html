@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dice Chess — Advanced Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0908;--panel:#131110;--border:#2e2416;--gold:#c9a84c;--gold-l:#e8c96a;--gold-d:#7a6030;--cream:#f0e8d0;--muted:#8a7a5a;--ls:#d4b896;--ds:#8b6040;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--cream);font-family:'Crimson Pro',serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px 60px;background-image:radial-gradient(ellipse 70% 40% at 50% 0%,rgba(140,76,201,.05) 0%,transparent 70%);}
+h1{font-family:'Cinzel Decorative',cursive;font-size:clamp(1.1rem,4vw,1.7rem);color:var(--gold);letter-spacing:4px;margin-bottom:4px;text-align:center;}
+.sub{color:var(--muted);font-style:italic;font-size:.9rem;margin-bottom:6px;text-align:center;}
+.badge{display:inline-block;background:#1a0a28;border:1px solid #6644aa;color:#aa88ee;font-family:'Cinzel Decorative',cursive;font-size:.55rem;letter-spacing:2px;padding:3px 10px;border-radius:12px;margin-bottom:20px;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;max-width:640px;width:100%;box-shadow:0 0 40px rgba(0,0,0,.6);}
+.dots{display:flex;justify-content:center;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--border);cursor:pointer;transition:background .25s,transform .25s;}
+.dot.active{background:#aa88ee;transform:scale(1.4);}
+.dot.done{background:#6644aa;}
+.scene{display:flex;gap:16px;align-items:flex-start;justify-content:center;flex-wrap:wrap;margin-bottom:16px;}
+.board{display:grid;grid-template-columns:repeat(8,42px);border:2px solid var(--gold-d);flex-shrink:0;}
+@media(max-width:480px){.board{grid-template-columns:repeat(8,34px);}.sq{width:34px!important;height:34px!important;}.pc{font-size:20px!important;}}
+.sq{width:42px;height:42px;display:flex;align-items:center;justify-content:center;position:relative;transition:background .3s;}
+.sq.l{background:var(--ls);}.sq.d{background:var(--ds);}
+.sq.sel{background:rgba(255,190,0,.72)!important;}
+.sq.mv{background:rgba(100,220,100,.52)!important;}
+.sq.cap{background:rgba(220,60,60,.67)!important;}
+.sq.moved{background:rgba(70,140,255,.32)!important;}
+.sq.hi{background:rgba(100,220,100,.38)!important;box-shadow:inset 0 0 0 2px rgba(80,220,80,.9);}
+.sq.danger{box-shadow:inset 0 0 0 3px rgba(255,40,40,.9)!important;}
+.sq.promo{box-shadow:inset 0 0 0 3px rgba(255,215,0,.9)!important;background:rgba(255,215,0,.2)!important;}
+@keyframes land{from{transform:scale(.45);opacity:.2;}to{transform:scale(1);opacity:1;}}
+@keyframes kingpulse{0%,100%{filter:drop-shadow(0 0 0px rgba(255,50,50,0));}50%{filter:drop-shadow(0 0 8px rgba(255,50,50,.9));}}
+.pc{font-size:24px;line-height:1;pointer-events:none;}
+.pc.w{color:#fff;text-shadow:0 0 3px #000,0 0 3px #000,1px 1px 2px #000,-1px -1px 2px #000;}
+.pc.b{color:#111;text-shadow:0 0 3px #fff,0 0 3px #fff,1px 1px 1px rgba(255,255,255,.6),-1px -1px 1px rgba(255,255,255,.6);}
+.pc.land{animation:land .3s ease;}
+.pc.kpulse{animation:kingpulse 1s ease infinite;}
+.dp{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:88px;}
+.dr{display:flex;gap:8px;}
+.die{width:38px;height:38px;background:var(--cream);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:#1a1814;box-shadow:inset 0 -2px 0 rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.5);}
+@keyframes roll{0%{transform:rotate(0) scale(1);}25%{transform:rotate(-25deg) scale(1.15);}75%{transform:rotate(15deg) scale(.9);}100%{transform:rotate(0) scale(1);}}
+.die.roll{animation:roll .45s ease-out;}
+.dtot{font-family:'Cinzel Decorative',cursive;font-size:1.8rem;color:var(--gold);font-weight:700;}
+.dpts{font-size:.78rem;color:var(--gold-l);text-align:center;min-height:1.1em;}
+.dlbl{font-family:'Cinzel Decorative',cursive;font-size:.5rem;color:var(--gold-d);letter-spacing:2px;}
+.nwrap{position:relative;}
+.narr{background:#0c0b09;border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:.93rem;line-height:1.65;color:var(--cream);min-height:88px;}
+.tag{display:inline-block;background:#5533aa;color:#ddc8ff;font-family:'Cinzel Decorative',cursive;font-size:.5rem;padding:2px 8px;border-radius:10px;margin-right:8px;vertical-align:middle;letter-spacing:1px;}
+.nav{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:14px;flex-wrap:wrap;}
+.btn{background:linear-gradient(135deg,#2a2010,#3a3020);border:1px solid var(--gold-d);color:var(--gold);font-family:'Cinzel Decorative',cursive;font-size:.58rem;letter-spacing:2px;padding:9px 16px;border-radius:6px;cursor:pointer;transition:all .2s;text-transform:uppercase;}
+.btn:hover:not(:disabled){background:linear-gradient(135deg,#3a3020,#4a4030);border-color:var(--gold);color:var(--gold-l);}
+.btn:disabled{opacity:.3;cursor:not-allowed;}
+.btn.g{border-color:#556655;color:#99bb99;}
+.ctr{font-size:.82rem;color:var(--muted);min-width:55px;text-align:center;}
+.sbtn{position:absolute;top:0;right:0;background:none;border:1px solid var(--border);color:var(--muted);font-size:.85rem;padding:4px 8px;border-radius:6px;cursor:pointer;transition:all .2s;}
+.sbtn:hover{border-color:var(--gold-d);color:var(--gold-d);}
+.links{display:flex;gap:12px;justify-content:center;margin-top:18px;flex-wrap:wrap;}
+.lnk{font-size:.82rem;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:6px 14px;border-radius:6px;transition:all .2s;}
+.lnk:hover{color:var(--gold);border-color:var(--gold-d);}
+.lnk.basic{border-color:#4466aa;color:#88aaee;}
+.lnk.basic:hover{border-color:#88aaff;color:#aaccff;}
+</style>
+</head>
+<body>
+<h1>⚄ Dice Chess</h1>
+<p class="sub">Advanced Tutorial</p>
+<span class="badge">DEMO 2 — ADVANCED</span>
+
+<div class="card">
+  <div class="dots" id="dots"></div>
+  <div class="scene">
+    <div class="board" id="board"></div>
+    <div class="dp">
+      <div class="dlbl">DICE</div>
+      <div class="dr"><div class="die" id="d1">–</div><div class="die" id="d2">–</div></div>
+      <div class="dtot" id="dtot">–</div>
+      <div class="dpts" id="dpts"></div>
+    </div>
+  </div>
+  <div class="nwrap">
+    <button class="sbtn" id="sbtn" onclick="toggleSound()">🔊</button>
+    <div class="narr" id="narr"></div>
+  </div>
+  <div class="nav">
+    <button class="btn" id="bprev" onclick="go(cur-1)" disabled>◀ Back</button>
+    <span class="ctr" id="ctr"></span>
+    <button class="btn" id="bnext" onclick="go(cur+1)">Next ▶</button>
+    <button class="btn g" onclick="go(0)">↺ Restart</button>
+  </div>
+</div>
+
+<div class="links">
+  <a class="lnk" href="index.html">🏠 Home</a>
+  <a class="lnk" href="dice-chess.html">♟ Play Game</a>
+  <a class="lnk basic" href="dice-chess-demo.html">← Basic Demo</a>
+</div>
+
+<script>
+// ── AUDIO ─────────────────────────────────────────────────────────────────────
+let actx=null,snd=true;
+function ctx(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();return actx;}
+function tone(f,t,dur,v=0.28,dl=0){if(!snd)return;try{const c=ctx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=t;o.frequency.value=f;const s=c.currentTime+dl;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(v,s+.01);g.gain.exponentialRampToValueAtTime(.001,s+dur);o.start(s);o.stop(s+dur);}catch(e){}}
+function noise(dur,v=0.14,dl=0){if(!snd)return;try{const c=ctx(),b=c.createBuffer(1,c.sampleRate*dur,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const s=c.createBufferSource(),g=c.createGain(),f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=700;s.buffer=b;s.connect(f);f.connect(g);g.connect(c.destination);const t=c.currentTime+dl;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);s.start(t);s.stop(t+dur);}catch(e){}}
+const SFX={
+  roll(){for(let i=0;i<6;i++)noise(.06,.18,i*.065);tone(280,'sine',.12,.12,.4);},
+  select(){tone(660,'sine',.07,.18);tone(880,'sine',.07,.13,.055);},
+  move(){tone(420,'triangle',.07,.22);noise(.04,.07);},
+  capture(){tone(200,'sawtooth',.06,.28);tone(140,'sawtooth',.09,.18,.05);noise(.1,.14);},
+  warn(){tone(220,'sawtooth',.15,.25);tone(180,'sawtooth',.2,.2,.1);},
+  castle(){tone(440,'triangle',.06,.2);tone(554,'triangle',.06,.18,.08);tone(659,'triangle',.08,.22,.16);},
+  promote(){[659,784,1047,1319].forEach((f,i)=>tone(f,'sine',.18,.22,i*.07));},
+  win(){[523,659,784,1047,1319].forEach((f,i)=>tone(f,'sine',.2,.25,i*.09));setTimeout(()=>{[784,1047,1319].forEach((f,i)=>tone(f,'sine',.25,.3,i*.09));},650);},
+  stale(){tone(200,'sawtooth',.1,.25);tone(150,'sawtooth',.15,.2,.1);tone(100,'sine',.3,.15,.25);},
+};
+function toggleSound(){snd=!snd;document.getElementById('sbtn').textContent=snd?'🔊':'🔇';}
+
+// ── GLYPHS ────────────────────────────────────────────────────────────────────
+const WG={P:'♙',N:'♘',B:'♗',R:'♖',Q:'♕',K:'♔'};
+const BG={P:'♟',N:'♞',B:'♝',R:'♜',Q:'♛',K:'♚'};
+const W=t=>({c:'w',t}),B=t=>({c:'b',t});
+const eb=()=>Array.from({length:8},()=>Array(8).fill(null));
+
+// ── STEPS ─────────────────────────────────────────────────────────────────────
+const STEPS=[
+
+// 0 — intro
+{b:(()=>{const b=eb();b[4][4]=W('K');b[4][3]=B('R');b[2][5]=B('K');b[6][2]=W('P');b[6][6]=W('P');return b;})(),
+ dice:[null,null],tot:null,pts:null,hl:{},sfx:null,
+ txt:`<span class="tag">ADVANCED</span>Welcome to Demo 2! You already know how to roll, spend points, and capture. Now we cover the deeper rules: <strong>King moves, check warnings, stalemate, winning, pawn promotion, castling, and the history viewer.</strong> These are the rules that separate good players from great ones.`},
+
+// 1 — check warning
+{b:(()=>{const b=eb();b[4][4]=W('K');b[4][3]=B('R');b[2][5]=B('K');b[6][2]=W('P');b[6][6]=W('P');return b;})(),
+ dice:[1,2],tot:3,pts:'3 pts — King is in danger!',
+ hl:{danger:[4,4]},sfx:'warn',
+ kpulse:[4,4],
+ txt:`<span class="tag">CHECK WARNING</span>White's King has a <strong style="color:#ff6666">red ring</strong> — it's in check from Black's Rook! But here's the twist: <strong>check is not enforced in Dice Chess.</strong> You can ignore it, move a different piece, even move into more danger. The warning is there so you know — the choice is yours.`},
+
+// 2 — check ignored
+{b:(()=>{const b=eb();b[4][4]=W('K');b[4][3]=B('R');b[2][5]=B('K');b[6][2]=W('P');b[6][6]=W('P');return b;})(),
+ dice:[1,2],tot:3,pts:'3 pts — White ignores check!',
+ hl:{danger:[4,4],hi:[[6,2],[6,6]]},sfx:'select',
+ kpulse:[4,4],
+ txt:`<span class="tag">YOUR RISK</span>White rolled 3 and has two Pawns (1pt each) available — but that only totals 2pt, not 3. White can't make 3 with pawns alone here. The King costs the entire turn. So White must move the King and accept the risk. <strong>Every decision in Dice Chess has a cost.</strong>`},
+
+// 3 — forced king move
+{b:(()=>{const b=eb();b[4][4]=W('K');b[4][3]=B('R');b[2][5]=B('K');b[6][2]=W('P');b[6][6]=W('P');return b;})(),
+ dice:[1,2],tot:3,pts:'3 pts — must move King',
+ hl:{sel:[4,4],mvs:[[3,3],[3,4],[3,5],[4,5],[5,3],[5,4],[5,5]]},sfx:'select',
+ txt:`<span class="tag">FORCED KING</span>When you can't make the exact total with non-King pieces, <strong>you must move the King</strong>. Moving the King uses your entire turn — no other pieces move. King selected (gold). White moves to f4, stepping out of the Rook's file. Smart escape!`},
+
+// 4 — king moved safely
+{b:(()=>{const b=eb();b[3][5]=W('K');b[4][3]=B('R');b[2][5]=B('K');b[6][2]=W('P');b[6][6]=W('P');return b;})(),
+ dice:[1,2],tot:3,pts:'Turn complete — King escaped',
+ hl:{moved:[[3,5]]},sfx:'move',
+ txt:`<span class="tag">KING MOVED ✓</span>King moved to f5 — out of the Rook's line of fire. Moving the King always ends your turn immediately, no other moves. <strong>Important:</strong> you can only select the King <em>before</em> moving any other piece that turn. Once you move another piece, the King option is locked out.`},
+
+// 5 — king capture setup
+{b:(()=>{const b=eb();b[2][4]=B('K');b[7][4]=W('K');b[5][4]=W('R');b[6][0]=W('P');b[6][7]=W('P');return b;})(),
+ dice:[2,3],tot:5,pts:'5 pts — can White win?',
+ hl:{hi:[[5,4]],danger:[2,4]},sfx:'roll',
+ txt:`<span class="tag">KING CAPTURE</span>The enemy King is in danger (red ring). White rolled <strong>5</strong> — exactly a Rook's value. This is the winning condition: <strong>the King can only be captured if it costs your very last point of the turn.</strong> Roll 5, spend 5 on Rook, capture King = you win!`},
+
+// 6 — rook selected targeting king
+{b:(()=>{const b=eb();b[2][4]=B('K');b[7][4]=W('K');b[5][4]=W('R');b[6][0]=W('P');b[6][7]=W('P');return b;})(),
+ dice:[2,3],tot:5,pts:'5 pts — Rook can capture King!',
+ hl:{sel:[5,4],mvs:[[4,4],[3,4],[5,3],[5,2],[5,1],[5,0],[5,5],[5,6],[5,7],[6,4],[7,4]],caps:[[2,4]]},sfx:'select',
+ txt:`<span class="tag">WIN SHOT</span>Rook selected. The enemy King shows in <strong style="color:#ff6666">red</strong> — it can be captured! White moves Rook to e6, taking the King. <strong>Why must it be the last point?</strong> If White had rolled 8 and captured the King with 5pt, 3pts would remain — illegal, turn not complete. Exact total rule always applies.`},
+
+// 7 — win!
+{b:(()=>{const b=eb();b[2][4]=W('R');b[7][4]=W('K');b[6][0]=W('P');b[6][7]=W('P');return b;})(),
+ dice:[2,3],tot:5,pts:'White wins! 👑',
+ hl:{moved:[[2,4]]},sfx:'win',
+ txt:`<span class="tag">VICTORY! 👑</span>Rook captures the King — <strong>White wins!</strong> The Black King is gone from the board. This is the only win condition in Dice Chess: capture the enemy King. No checkmate, no resignation required. Hunt the King, roll the right number, and take it!`},
+
+// 8 — stalemate setup
+{b:(()=>{const b=eb();b[7][4]=W('K');b[6][3]=W('P');b[6][5]=W('P');b[7][3]=W('B');b[7][5]=W('B');b[0][4]=B('K');return b;})(),
+ dice:[4,5],tot:9,pts:'9 pts — no valid combo!',
+ hl:{},sfx:'roll',
+ txt:`<span class="tag">STALEMATE</span>White rolls <strong>9</strong>. Only a Queen costs 9pt — White has no Queen. Can any combination reach 9? Bishop(3)+Bishop(3)+Pawn... wait, White has no pawns that can move. Can't make 9. <strong>Must move the King instead.</strong> But what if the King is also blocked?`},
+
+// 9 — king also stuck
+{b:(()=>{const b=eb();b[7][4]=W('K');b[6][3]=W('P');b[6][5]=W('P');b[7][3]=W('B');b[7][5]=W('B');b[0][4]=B('K');b[5][3]=B('R');b[5][5]=B('R');b[5][4]=B('Q');return b;})(),
+ dice:[4,5],tot:9,pts:'9 pts — King also blocked!',
+ hl:{sel:[7,4],danger:[7,4]},sfx:'stale',
+ txt:`<span class="tag">STALEMATE ✗</span>King selected — but every square around it is attacked by Black's pieces (red ring shows it's in danger). The King has nowhere safe to go. Can't make the exact total. King is blocked. <strong>Stalemate — White loses!</strong> This is why you must protect your escape routes.`},
+
+// 10 — pawn promotion setup
+{b:(()=>{const b=eb();b[1][3]=W('P');b[7][4]=W('K');b[6][0]=W('P');b[0][4]=B('K');b[0][7]=B('R');return b;})(),
+ dice:[1,0],tot:1,pts:'1 pt — pawn reaches last rank!',
+ hl:{hi:[[1,3]]},sfx:'roll',
+ txt:`<span class="tag">PROMOTION</span>White's Pawn is on rank 7 — one step from the back rank! White rolls <strong>1</strong>. The Pawn costs exactly 1pt. Move it forward and it reaches rank 8. <strong>When a pawn reaches the last rank, you choose</strong> what it promotes to: Queen, Rook, Bishop, or Knight.`},
+
+// 11 — pawn promoted to queen
+{b:(()=>{const b=eb();b[0][3]=W('Q');b[7][4]=W('K');b[6][0]=W('P');b[0][4]=B('K');b[0][7]=B('R');return b;})(),
+ dice:[1,0],tot:1,pts:'Promoted to Queen! ♕',
+ hl:{promo:[0,3],moved:[[0,3]]},sfx:'promote',
+ txt:`<span class="tag">PROMOTED! ♕</span>Pawn promoted to <strong>Queen</strong>! A gold ring highlights the promotion square. The new Queen is now one of the most powerful pieces on the board. Promoting to a Rook, Bishop, or Knight is useful in specific situations — but Queen is usually the best choice.`},
+
+// 12 — castling setup
+{b:(()=>{const b=eb();b[7][4]=W('K');b[7][7]=W('R');b[7][0]=W('R');b[6][3]=W('P');b[6][4]=W('P');b[0][4]=B('K');b[1][3]=B('P');b[1][4]=B('P');return b;})(),
+ dice:[2,3],tot:5,pts:'5 pts — castling available!',
+ hl:{hi:[[7,4]]},sfx:'roll',
+ txt:`<span class="tag">CASTLING</span>White's King and both Rooks haven't moved — castling is available. <strong>Castling costs 5 points</strong>, same as a regular Rook move. This means you can castle AND still spend remaining points that turn! Roll 8 = castle(5) + knight(3). The King selects it as a special move.`},
+
+// 13 — castle move shown
+{b:(()=>{const b=eb();b[7][4]=W('K');b[7][7]=W('R');b[7][0]=W('R');b[6][3]=W('P');b[6][4]=W('P');b[0][4]=B('K');b[1][3]=B('P');b[1][4]=B('P');return b;})(),
+ dice:[2,3],tot:5,pts:'5 pts — castle kingside',
+ hl:{sel:[7,4],mvs:[[7,3],[7,5],[6,4],[6,5]],caps:[[7,6]]},sfx:'select',
+ txt:`<span class="tag">CASTLE MOVE</span>King selected. The g1 square (red) is the kingside castle destination — same display as a regular move. When the King moves there, the Rook on h1 automatically swings to f1. <strong>Castling is blocked</strong> if any squares between King and Rook are occupied, or if those squares are attacked.`},
+
+// 14 — after castle
+{b:(()=>{const b=eb();b[7][6]=W('K');b[7][5]=W('R');b[7][0]=W('R');b[6][3]=W('P');b[6][4]=W('P');b[0][4]=B('K');b[1][3]=B('P');b[1][4]=B('P');return b;})(),
+ dice:[2,3],tot:5,pts:'0 pts — Castled! ✓',
+ hl:{moved:[[7,6],[7,5]]},sfx:'castle',
+ txt:`<span class="tag">CASTLED ✓</span>King moved to g1, Rook swung to f1 automatically. Both shown in blue. This tucked the King safely behind pawns and activated the Rook in one move — all for 5pt. <strong>Castling rights are gone once either piece moves</strong>, so castle early while you still can!`},
+
+// 15 — undo & history
+{b:(()=>{const b=eb();['R','N','B','Q','K','B','N','R'].forEach((t,c)=>{b[0][c]=B(t);b[7][c]=W(t);});for(let c=0;c<8;c++){b[1][c]=B('P');b[6][c]=W('P');}return b;})(),
+ dice:[null,null],tot:null,pts:null,hl:{},sfx:null,
+ txt:`<span class="tag">UNDO & HISTORY</span>Made a mistake? Hit <strong>↩ Undo</strong> to take back your last move — available during your turn before it ends. Want to review the game? Click <strong>📜 History</strong> to step back through every move with ⏮ ◀ ▶ ⏭ controls. Both tools are in the sidebar during and after the game.`},
+
+// 16 — wrap up
+{b:(()=>{const b=eb();['R','N','B','Q','K','B','N','R'].forEach((t,c)=>{b[0][c]=B(t);b[7][c]=W(t);});for(let c=0;c<8;c++){b[1][c]=B('P');b[6][c]=W('P');}return b;})(),
+ dice:[null,null],tot:null,pts:null,hl:{},sfx:'win',
+ txt:`<span class="tag">MASTER!</span>You've completed both demos! You know: rolling & spending exactly, multi-piece turns, free captures, King moves, check warnings, forced King, winning by capture, stalemate, pawn promotion, castling, undo and history. <strong>You're ready to play!</strong> Good luck — may your dice always roll in your favour. 🎲👑`},
+];
+
+// ── ENGINE ────────────────────────────────────────────────────────────────────
+let cur=0;
+
+function init(){
+  const el=document.getElementById('dots');
+  el.innerHTML='';
+  STEPS.forEach((_,i)=>{
+    const d=document.createElement('span');d.className='dot';d.onclick=()=>go(i);el.appendChild(d);
+  });
+  go(0);
+}
+
+function go(i){
+  if(i<0||i>=STEPS.length)return;
+  cur=i;
+  const s=STEPS[i];
+  document.querySelectorAll('.dot').forEach((d,j)=>{d.className='dot'+(j===i?' active':j<i?' done':'');});
+  document.getElementById('bprev').disabled=i===0;
+  document.getElementById('bnext').disabled=i===STEPS.length-1;
+  document.getElementById('ctr').textContent=`${i+1} / ${STEPS.length}`;
+  if(s.dice[0]!==null){
+    animDice(s.dice[0],s.dice[1]);
+    document.getElementById('dtot').textContent=s.tot;
+    document.getElementById('dpts').textContent=s.pts||'';
+  }else{
+    document.getElementById('d1').textContent='–';document.getElementById('d2').textContent='–';
+    document.getElementById('dtot').textContent='–';document.getElementById('dpts').textContent='';
+  }
+  document.getElementById('narr').innerHTML=s.txt;
+  if(s.sfx&&SFX[s.sfx])setTimeout(()=>SFX[s.sfx](),60);
+  draw(s.b,s.hl||{},s.kpulse||null,s.promo_sq||null);
+}
+
+function animDice(d1,d2){
+  const e1=document.getElementById('d1'),e2=document.getElementById('d2');
+  e1.classList.add('roll');e2.classList.add('roll');
+  let n=0;const t=setInterval(()=>{
+    e1.textContent=Math.floor(Math.random()*6)+1;e2.textContent=Math.floor(Math.random()*6)+1;
+    if(++n>7){clearInterval(t);e1.textContent=d1;e2.textContent=d2;e1.classList.remove('roll');e2.classList.remove('roll');}
+  },55);
+}
+
+function draw(b,hl,kpulse,promoSq){
+  const el=document.getElementById('board');el.innerHTML='';
+  const sk=hl.sel?`${hl.sel[0]},${hl.sel[1]}`:null;
+  const mv=new Set((hl.mvs||[]).map(([r,c])=>`${r},${c}`));
+  const cp=new Set((hl.caps||[]).map(([r,c])=>`${r},${c}`));
+  const dn=new Set((hl.moved||[]).map(([r,c])=>`${r},${c}`));
+  const hi=new Set((hl.hi||[]).map(([r,c])=>`${r},${c}`));
+  const dg=hl.danger?`${hl.danger[0]},${hl.danger[1]}`:null;
+  const pm=hl.promo?`${hl.promo[0]},${hl.promo[1]}`:null;
+  const kp=kpulse?`${kpulse[0]},${kpulse[1]}`:null;
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const sq=document.createElement('div'),k=`${r},${c}`;
+    sq.className='sq '+((r+c)%2===0?'l':'d');
+    if(k===sk)sq.classList.add('sel');
+    else if(cp.has(k))sq.classList.add('cap');
+    else if(mv.has(k))sq.classList.add('mv');
+    else if(dn.has(k))sq.classList.add('moved');
+    else if(hi.has(k))sq.classList.add('hi');
+    if(k===dg)sq.classList.add('danger');
+    if(k===pm)sq.classList.add('promo');
+    const p=b[r][c];
+    if(p){
+      const sp=document.createElement('span');
+      sp.className='pc '+(p.c==='w'?'w':'b')+(dn.has(k)||k===sk?' land':'');
+      if(k===kp)sp.classList.add('kpulse');
+      sp.textContent=p.c==='w'?WG[p.t]:BG[p.t];
+      sq.appendChild(sp);
+    }
+    el.appendChild(sq);
+  }
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' ')go(cur+1);
+  if(e.key==='ArrowLeft')go(cur-1);
+});
+
+init();
+</script>
+</body>
+</html>
